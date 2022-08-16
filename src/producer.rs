@@ -1,12 +1,12 @@
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
-use log::{error, info};
+use log::{debug, error};
 use rdkafka::error::KafkaError;
 use rdkafka::producer::{Producer, BaseProducer, BaseRecord};
 
 pub async fn producer_loop(producer: BaseProducer, topic: &str, rx: Receiver<String>) {
     while let Ok(payload) = rx.recv() {
-        info!("Producing message: {payload}");
+        debug!("Producing message: {payload}");
         send(&producer, topic, "".to_string(), payload).unwrap();
     }
 }

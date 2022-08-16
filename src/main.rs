@@ -6,8 +6,10 @@ use log::{info, LevelFilter};
 use rdkafka::{ClientConfig};
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::{BaseProducer};
+use serde_json::Value;
 use tokio::runtime::Builder;
 use kafka_json_processor::consumer::consumer_loop;
+use kafka_json_processor::processor::{OutputMessage, ProcessingResult};
 use kafka_json_processor::producer::producer_loop;
 
 fn main() {
@@ -37,8 +39,13 @@ fn main() {
         runtime.spawn(async move {
             producer_loop(producer, "bbbb", rx).await;
         });
-        consumer_loop(consumer, tx).await;
+        consumer_loop(consumer, tx, &runtime, &[&add_static_field]).await;
     });
+}
+
+fn add_static_field(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+    message.insert_str("abc".to_string(), "xyz".to_string());
+    Ok(())
 }
 
 fn create_config(file: File) -> Result<(ClientConfig, ClientConfig), Box<dyn Error>> {
