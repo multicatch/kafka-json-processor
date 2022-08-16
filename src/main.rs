@@ -1,13 +1,14 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::time::Duration;
-use log::{error, info, LevelFilter};
-use rdkafka::{ClientConfig, Message};
+use std::sync::mpsc;
+use log::{info, LevelFilter};
+use rdkafka::{ClientConfig};
 use rdkafka::consumer::{Consumer, StreamConsumer};
-use rdkafka::error::KafkaError;
-use rdkafka::producer::{Producer, BaseProducer, BaseRecord};
+use rdkafka::producer::{BaseProducer};
 use tokio::runtime::Builder;
+use kafka_json_processor::consumer::consumer_loop;
+use kafka_json_processor::producer::producer_loop;
 
 fn main() {
     env_logger::builder()
@@ -32,21 +33,11 @@ fn main() {
 
         consumer.subscribe(&["aaaa"]).unwrap();
 
-        loop {
-            match consumer.recv().await {
-                Ok(message) => {
-                    let payload = String::from_utf8_lossy(message.payload().unwrap());
-                    let key = format!("{}:{}", message.topic(), message.partition());
-                    info!("Received message: [{}:{}] [{}] {}",
-                        key, message.offset(), message.timestamp().to_millis().unwrap_or(0), payload
-                    );
-                    send(&producer, "bbbb", key, payload.into()).unwrap();
-                }
-                Err(e) => {
-                    error!("Cannot consume message! Reason: {}", e);
-                }
-            }
-        }
+        let (tx, rx) = mpsc::channel();
+        runtime.spawn(async move {
+            producer_loop(producer, "bbbb", rx).await;
+        });
+        consumer_loop(consumer, tx).await;
     });
 }
 
@@ -86,20 +77,4 @@ fn create_config(file: File) -> Result<(ClientConfig, ClientConfig), Box<dyn Err
     }
 
     Ok((consumer_config, producer_config))
-}
-
-
-fn send(producer: &BaseProducer, topic: &str, key: String, payload: String) -> Result<(), KafkaError> {
-    let result = producer.send(
-        BaseRecord::to(topic)
-            .key(&key)
-            .payload(&payload),
-    );
-    if let Err((e, _)) = &result {
-        error!("Could not send message [{}]! Reason: {}, queue: {}", key, e, producer.in_flight_count());
-    } else {
-        producer.poll(Duration::from_millis(0));
-    }
-
-    result.map_err(|(e, _)| e)
 }
