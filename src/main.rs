@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::sync::mpsc;
+use crossbeam_channel::bounded;
 use log::{info, LevelFilter};
 use rdkafka::{ClientConfig};
 use rdkafka::consumer::{Consumer, StreamConsumer};
@@ -35,7 +35,7 @@ fn main() {
 
         consumer.subscribe(&["aaaa"]).unwrap();
 
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = bounded(50);
         runtime.spawn(async move {
             producer_loop(producer, "bbbb", rx).await;
         });
