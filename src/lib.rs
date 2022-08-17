@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use std::time::Duration;
 use crossbeam_channel::bounded;
 use log::{info, warn};
 use rdkafka::ClientConfig;
@@ -30,6 +31,8 @@ pub struct Config {
     pub producer_config: ClientConfig,
     pub worker_threads: usize,
     pub channel_capacity: usize,
+    pub queue_slowdown: usize,
+    pub queue_size: usize,
 }
 
 impl Config {
@@ -88,9 +91,15 @@ async fn run_processing_tasks(
 
     consumer.subscribe(&[&input_topic])?;
 
-    let (tx, rx) = bounded(50);
+    let (tx, rx) = bounded(config.channel_capacity);
     runtime.spawn(async move {
-        producer_loop(producer, &output_topic, rx).await;
+        producer_loop(
+            producer,
+            &output_topic,
+            rx,
+            config.queue_size,
+            Duration::from_millis(config.queue_slowdown as u64)
+        ).await;
     });
 
     consumer_loop(consumer, tx, runtime, processors).await
@@ -101,7 +110,9 @@ fn create_config(file: File) -> Result<Config, Box<dyn Error>> {
         consumer_config: ClientConfig::new(),
         producer_config: ClientConfig::new(),
         worker_threads: 4,
-        channel_capacity: 50
+        channel_capacity: 50,
+        queue_size: 100_000,
+        queue_slowdown: 10_000, // 10 s
     };
 
     for line in BufReader::new(&file).lines() {
@@ -129,10 +140,7 @@ fn create_config(file: File) -> Result<Config, Box<dyn Error>> {
                 key.strip_prefix("producer.").unwrap().to_string(),
                 value.to_string(),
             );
-        } else if !key.starts_with("processor.") {
-            config.consumer_config.set(key.to_string(), value.to_string());
-            config.producer_config.set(key.to_string(), value.to_string());
-        } else {
+        } else if key.starts_with("processor.") {
             match *key {
                 "processor.channel.capacity" =>
                     config.channel_capacity = value.parse()?,
@@ -140,8 +148,19 @@ fn create_config(file: File) -> Result<Config, Box<dyn Error>> {
                 "processor.worker.threads" =>
                     config.worker_threads = value.parse()?,
 
-                _ => {}
+                "processor.queue.size" =>
+                    config.queue_size = value.parse()?,
+
+                "processor.queue.slowdown" =>
+                    config.queue_slowdown = value.parse()?,
+
+                _ => {
+                    warn!("Unknown config option: {key}. Ignoring.")
+                }
             }
+        } else {
+            config.consumer_config.set(key.to_string(), value.to_string());
+            config.producer_config.set(key.to_string(), value.to_string());
         }
     }
 
