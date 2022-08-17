@@ -4,9 +4,11 @@ use rdkafka::consumer::StreamConsumer;
 use rdkafka::Message;
 use tokio::runtime::Runtime;
 use crate::PendingMessage;
-use crate::processor::{process_payload, Processor};
+use crate::processor::{process_payload, ProcessingResult, Processor};
 
-pub async fn consumer_loop(consumer: StreamConsumer, tx: Sender<PendingMessage>, runtime: &Runtime, processors: &'static [Processor]) {
+pub async fn consumer_loop(consumer: StreamConsumer, tx: Sender<PendingMessage>, runtime: &Runtime, processors: &'static [Processor])
+                           -> ProcessingResult<()>
+{
     loop {
         match consumer.recv().await {
             Ok(message) => {
