@@ -1,20 +1,18 @@
 use std::error::Error;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
 use std::time::Duration;
 use crossbeam_channel::bounded;
 use log::{info, warn};
-use rdkafka::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::BaseProducer;
 use tokio::runtime::{Builder, Runtime};
+use crate::config::Config;
 use crate::consumer::consumer_loop;
 use crate::processor::{Processor, SerializedOutputMessage};
 use crate::producer::producer_loop;
 
-pub mod consumer;
-pub mod producer;
+pub mod config;
+mod consumer;
+mod producer;
 pub mod processor;
 
 pub enum PendingMessage {
@@ -23,23 +21,6 @@ pub enum PendingMessage {
         id: String,
         message: SerializedOutputMessage,
     },
-}
-
-#[derive(Clone)]
-pub struct Config {
-    pub consumer_config: ClientConfig,
-    pub producer_config: ClientConfig,
-    pub worker_threads: usize,
-    pub channel_capacity: usize,
-    pub queue_slowdown: usize,
-    pub queue_size: usize,
-}
-
-impl Config {
-    pub fn read_from<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
-        let file = File::open(path.as_ref())?;
-        create_config(file)
-    }
 }
 
 pub fn run_processor(input_topic: String, output_topic: String, processors: &'static [Processor]) {
@@ -61,7 +42,7 @@ pub fn run_processor(input_topic: String, output_topic: String, processors: &'st
 
         let runtime = Builder::new_multi_thread()
             .enable_all()
-            .worker_threads(config.worker_threads)
+            .worker_threads(config.internal_config.worker_threads)
             .build()
             .unwrap();
 
@@ -91,78 +72,16 @@ async fn run_processing_tasks(
 
     consumer.subscribe(&[&input_topic])?;
 
-    let (tx, rx) = bounded(config.channel_capacity);
+    let (tx, rx) = bounded(config.internal_config.channel_capacity);
     runtime.spawn(async move {
         producer_loop(
             producer,
             &output_topic,
             rx,
-            config.queue_size,
-            Duration::from_millis(config.queue_slowdown as u64)
+            config.internal_config.queue_size,
+            Duration::from_millis(config.internal_config.queue_slowdown_ms as u64)
         ).await;
     });
 
     consumer_loop(consumer, tx, runtime, processors).await
-}
-
-fn create_config(file: File) -> Result<Config, Box<dyn Error>> {
-    let mut config = Config {
-        consumer_config: ClientConfig::new(),
-        producer_config: ClientConfig::new(),
-        worker_threads: 4,
-        channel_capacity: 50,
-        queue_size: 100_000,
-        queue_slowdown: 10_000, // 10 s
-    };
-
-    for line in BufReader::new(&file).lines() {
-        let current_line: String = line?
-            .trim_start()
-            .to_string();
-
-        if current_line.starts_with('#') || current_line.trim().is_empty() {
-            continue;
-        }
-
-        let key_value: Vec<&str> = current_line.split('=').collect();
-        let key = key_value.first()
-            .ok_or(format!("Illegal config entry (malformed key): {current_line}"))?;
-        let value = key_value.get(1)
-            .ok_or(format!("Illegal config entry (malformed value): {current_line}"))?;
-
-        if key.starts_with("consumer.") {
-            config.consumer_config.set(
-                key.strip_prefix("consumer.").unwrap().to_string(),
-                value.to_string(),
-            );
-        } else if key.starts_with("producer.") {
-            config.producer_config.set(
-                key.strip_prefix("producer.").unwrap().to_string(),
-                value.to_string(),
-            );
-        } else if key.starts_with("processor.") {
-            match *key {
-                "processor.channel.capacity" =>
-                    config.channel_capacity = value.parse()?,
-
-                "processor.worker.threads" =>
-                    config.worker_threads = value.parse()?,
-
-                "processor.queue.size" =>
-                    config.queue_size = value.parse()?,
-
-                "processor.queue.slowdown" =>
-                    config.queue_slowdown = value.parse()?,
-
-                _ => {
-                    warn!("Unknown config option: {key}. Ignoring.")
-                }
-            }
-        } else {
-            config.consumer_config.set(key.to_string(), value.to_string());
-            config.producer_config.set(key.to_string(), value.to_string());
-        }
-    }
-
-    Ok(config)
 }
