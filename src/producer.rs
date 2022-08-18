@@ -7,7 +7,7 @@ use rdkafka::producer::{Producer, BaseProducer, BaseRecord};
 use rdkafka::util::Timeout;
 use crate::{PendingMessage, SerializedOutputMessage};
 
-pub async fn producer_loop(producer: BaseProducer, topic: &str, rx: Receiver<PendingMessage>, queue_size: usize, queue_slowdown_time: Duration) {
+pub async fn producer_loop(producer: BaseProducer, rx: Receiver<PendingMessage>, queue_size: usize, queue_slowdown_time: Duration) {
     while let Ok(pending) = rx.recv() {
         match pending {
             PendingMessage::Received => {
@@ -16,11 +16,11 @@ pub async fn producer_loop(producer: BaseProducer, topic: &str, rx: Receiver<Pen
                 // Sender<PendingMessage> uses a bounded channel, so it will block if it's full (that is,
                 // when Receiver<PendingMessage> did not read objects from queue).
             }
-            PendingMessage::Processed { id, message } => {
+            PendingMessage::Processed { id, topic, message } => {
                 debug!("[{id}] Producing message [{}]", message.key);
                 trace!("[{id}] Produced: {}", message.message);
 
-                if let SentMessage::ShouldSkipMessage = send_loop(&producer, topic, &id, message, queue_size, queue_slowdown_time) {
+                if let SentMessage::ShouldSkipMessage = send_loop(&producer, &topic, &id, message, queue_size, queue_slowdown_time) {
                     // Message not sent, so
                     continue;
                 }

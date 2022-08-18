@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 use crossbeam_channel::bounded;
-use log::{info, warn};
+use log::{info, warn, error, debug};
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::BaseProducer;
 use tokio::runtime::{Builder, Runtime};
@@ -15,15 +16,23 @@ mod consumer;
 mod producer;
 pub mod processor;
 
+#[derive(Clone)]
+pub struct Stream {
+    pub source_topic: String,
+    pub target_topic: String,
+    pub processors: &'static [Processor],
+}
+
 pub enum PendingMessage {
     Received,
     Processed {
         id: String,
+        topic: String,
         message: SerializedOutputMessage,
     },
 }
 
-pub fn run_processor(input_topic: String, output_topic: String, processors: &'static [Processor]) {
+pub fn run_processor(streams: HashMap<String, Stream>) {
     info!("Starting kafka-json-processor...");
 
     let config_env = "KAFKA_PROCESSOR_CONFIG_PATH";
@@ -38,6 +47,8 @@ pub fn run_processor(input_topic: String, output_topic: String, processors: &'st
     let config = Config::read_from(default_config_path).unwrap();
 
     loop {
+        debug!("Starting runtime...");
+
         let config = config.clone();
 
         let runtime = Builder::new_multi_thread()
@@ -50,9 +61,7 @@ pub fn run_processor(input_topic: String, output_topic: String, processors: &'st
             run_processing_tasks(
                 &runtime,
                 config,
-                input_topic.clone(),
-                output_topic.clone(),
-                processors
+                streams.clone(),
             ).await
         }) {
             warn!("RUNTIME ERROR: {:?}. Restarting...", e);
@@ -60,28 +69,53 @@ pub fn run_processor(input_topic: String, output_topic: String, processors: &'st
     }
 }
 
+macro_rules! exec_or_retry_in_10s {
+    ($supplier:expr) => {
+        match $supplier {
+            Ok(value) => value,
+            Err(e) => {
+                error!("Connection error: [{}], retrying in 10 seconds...", e);
+                std::thread::sleep(Duration::from_secs(10));
+                return Ok(());
+            }
+        }
+    };
+}
+
 async fn run_processing_tasks(
     runtime: &Runtime,
     config: Config,
-    input_topic: String,
-    output_topic: String,
-    processors: &'static [Processor]
+    streams: HashMap<String, Stream>,
 ) -> Result<(), Box<dyn Error>> {
-    let consumer: StreamConsumer = config.consumer_config.create()?;
-    let producer: BaseProducer = config.producer_config.create()?;
+    let consumer: StreamConsumer = exec_or_retry_in_10s!(config.consumer_config.create());
+    let producer: BaseProducer = exec_or_retry_in_10s!(config.producer_config.create());
 
-    consumer.subscribe(&[&input_topic])?;
+    show_streams_and_subscribe(&consumer, &streams)?;
 
     let (tx, rx) = bounded(config.internal_config.channel_capacity);
     runtime.spawn(async move {
         producer_loop(
             producer,
-            &output_topic,
             rx,
             config.internal_config.queue_size,
-            Duration::from_millis(config.internal_config.queue_slowdown_ms as u64)
+            Duration::from_millis(config.internal_config.queue_slowdown_ms as u64),
         ).await;
     });
 
-    consumer_loop(consumer, tx, runtime, processors).await
+    consumer_loop(consumer, tx, runtime, streams).await
+}
+
+fn show_streams_and_subscribe(consumer: &StreamConsumer, streams: &HashMap<String, Stream>) -> Result<(), Box<dyn Error>> {
+    streams.values()
+        .for_each(|stream| {
+           info!("Stream [{}] --> [{}]: {} processor(s).", stream.source_topic, stream.target_topic, stream.processors.len());
+        });
+
+    let topics: Vec<&str> = streams.keys()
+        .map(|key| key.as_str())
+        .collect();
+
+    consumer.subscribe(&topics)?;
+
+    Ok(())
 }
