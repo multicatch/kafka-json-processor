@@ -13,3 +13,4 @@ rdkafka = { version = "0.28.0", features = ["cmake-build"] }
 serde_json = "1.0.83"
 crossbeam = "0.8.2"
 crossbeam-channel = "0.5.6"
+lazy_static = "1.4.0"
