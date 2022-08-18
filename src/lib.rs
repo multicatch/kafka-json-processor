@@ -15,7 +15,7 @@ pub mod config;
 mod consumer;
 mod producer;
 pub mod processor;
-pub mod xml;
+pub mod formatters;
 
 #[derive(Clone)]
 pub struct Stream {

@@ -1,17 +1,4 @@
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref PREPARED_INDENTS: [&'static [u8]; 8] = [
-        b"\n",
-        b"\n  ",
-        b"\n    ",
-        b"\n      ",
-        b"\n        ",
-        b"\n          ",
-        b"\n             ",
-        b"\n               ",
-    ];
-}
+use crate::formatters::PREPARED_INDENTS;
 
 #[derive(Eq, PartialEq, Clone)]
 enum XmlSymbol {
@@ -23,7 +10,7 @@ enum XmlSymbol {
     Whitespace,
 }
 
-/// Naive implementation of pretty xml. Not so accurate, but readable and fast.
+/// Naive implementation of pretty XML. Not so accurate, but readable and fast.
 pub fn pretty_xml(source: String) -> String {
     if !source.contains("</") {
         return source;
@@ -104,7 +91,7 @@ fn should_append_indent(symbol: &XmlSymbol, last_symbol: &XmlSymbol) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::xml::pretty_xml;
+    use crate::formatters::xml::pretty_xml;
 
     #[test]
     fn should_format_xml_as_pretty() {
