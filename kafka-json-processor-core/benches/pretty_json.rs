@@ -1,9 +1,9 @@
 #![feature(test)]
 extern crate test;
-extern crate kafka_json_processor;
+extern crate kafka_json_processor_core;
 
 use test::Bencher;
-use kafka_json_processor::formatters::json::pretty_json;
+use kafka_json_processor_core::formatters::json::pretty_json;
 
 const JSON_LOG: &str = r##"[INFO] Some message. Interestingly, here is the body: {"glossary":[{"title":"example glossary","GlossDiv":{"title":"S","available":true,"number":123.22,"GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as \"DocBook\".","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}]}"##;
 const JSON_ONLY: &str = r##"{"glossary":[{"title":"example glossary","GlossDiv":{"title":"S","available":true,"number":123.22,"GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as \"DocBook\".","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}]}"##;

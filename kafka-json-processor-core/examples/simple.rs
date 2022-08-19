@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use log::LevelFilter;
 use serde_json::Value;
-use kafka_json_processor::processor::{OutputMessage, ProcessingResult};
-use kafka_json_processor::{run_processor, Stream};
-use kafka_json_processor::formatters::json::pretty_json;
-use kafka_json_processor::formatters::xml::pretty_xml;
+use kafka_json_processor_core::processor::{OutputMessage, ProcessingResult};
+use kafka_json_processor_core::{run_processor, Stream};
+use kafka_json_processor_core::formatters::json::pretty_json;
+use kafka_json_processor_core::formatters::xml::pretty_xml;
 
 fn main() {
     env_logger::builder()
@@ -50,8 +50,8 @@ fn format_json_field(input: &Value, message: &mut OutputMessage) -> ProcessingRe
 mod simulations {
     use std::collections::HashMap;
     use log::LevelFilter;
-    use kafka_json_processor::simulation::simulate_streams_from_default_folder;
-    use kafka_json_processor::Stream;
+    use kafka_json_processor_core::simulation::simulate_streams_from_default_folder;
+    use kafka_json_processor_core::Stream;
     use crate::{add_static_field, format_json_field, format_xml_field};
 
     #[test]

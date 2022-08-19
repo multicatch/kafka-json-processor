@@ -10,7 +10,7 @@ use crate::processor::process_payload;
 use crate::Stream;
 
 pub fn simulate_streams_from_default_folder(streams: HashMap<String, Stream>) {
-    simulate_streams(streams, "simulations");
+    simulate_streams(streams, "../simulations");
 }
 
 pub fn simulate_streams<P: AsRef<Path>>(streams: HashMap<String, Stream>, base_path: P) {
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn should_read_data() {
-        let result = read_data_from("simulations/example/basic.sample");
+        let result = read_data_from("../simulations/example/basic.sample");
         assert!(result.is_ok());
         let (input, expected) = result.unwrap();
 
