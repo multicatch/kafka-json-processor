@@ -92,7 +92,7 @@ fn run_single_simulation(msg_id: String, stream: &Stream, input: String, expecte
 
     debug!("[{msg_id}] Simulation started.");
     let result = process_payload(msg_id.clone(), input.as_bytes(), stream.processors);
-    info!("[{msg_id}] Simulation finished in {}ms", interval.elapsed().as_millis());
+    info!("[{msg_id}] Simulation finished in {}us", interval.elapsed().as_micros());
 
     if let Err(e) = &result {
         error!("[{msg_id}] FAILED: {}", e);
