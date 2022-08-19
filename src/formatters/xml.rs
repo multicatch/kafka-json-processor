@@ -26,9 +26,11 @@ pub fn pretty_xml(source: String) -> String {
     let mut last_symbol = XmlSymbol::NotATag;
     let mut source_rewrite_pos: usize = 0;
     let mut xml_started = false;
+    let mut last_character = None;
 
     for (i, current_char) in source_bytes.iter().enumerate() {
-        let symbol = detect_xml_symbol(*current_char, source_bytes.get(i + 1));
+        let symbol = detect_last_xml_symbol(last_character, *current_char);
+        last_character = Some(current_char);
         if symbol == XmlSymbol::Whitespace {
             continue;
         }
@@ -41,11 +43,11 @@ pub fn pretty_xml(source: String) -> String {
         }
 
         if should_append_indent(&symbol, &last_symbol) {
-            result.extend_from_slice(&source_bytes[source_rewrite_pos..i]);
+            result.extend_from_slice(&source_bytes[source_rewrite_pos..i-1]);
             result.extend_from_slice(PREPARED_INDENTS.get(next_indent)
                 .unwrap_or_else(|| PREPARED_INDENTS.last().unwrap())
             );
-            source_rewrite_pos = i;
+            source_rewrite_pos = i - 1;
         }
 
         if symbol == XmlSymbol::ElementEnd && next_indent > 0 {
@@ -60,24 +62,22 @@ pub fn pretty_xml(source: String) -> String {
 }
 
 /// Detect xml symbol based on most common character collocations in XML.
-fn detect_xml_symbol(current_char: u8, next_char: Option<&u8>) -> XmlSymbol {
-    match current_char {
-        b'<' =>
-            match next_char {
-                Some(&b'/') =>
+fn detect_last_xml_symbol(last_character: Option<&u8>, current_char: u8) -> XmlSymbol {
+    match last_character {
+        Some(&b'<') =>
+            match current_char {
+                b'/' =>
                     XmlSymbol::ElementEnd,
-                Some(&b'!') | Some(&b'?') =>
+                b'!' | b'?' =>
                     XmlSymbol::SameLevelTag,
-                Some(&b' ') =>
+                b' ' =>
                     XmlSymbol::NotATag,
-                Some(_) =>
-                    XmlSymbol::ElementStart,
                 _ =>
-                    XmlSymbol::NotATag
+                    XmlSymbol::ElementStart
             },
-        b'>' =>
+        Some(&b'>') =>
             XmlSymbol::TagEnd,
-        b' ' | b'\t' =>
+        Some(&b' ') | Some(&b'\t') =>
             XmlSymbol::Whitespace,
         _ =>
             XmlSymbol::NotATag

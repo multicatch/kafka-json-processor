@@ -12,9 +12,11 @@ pub fn pretty_json(source: String) -> String {
     let mut source_rewrite_pos: usize = 0;
     let mut string_started = false;
     let mut whitespace_started = false;
+    let mut last_character = None;
 
     for (i, current_char) in source_bytes.iter().enumerate() {
-        let symbol = detect_json_symbol(if i > 0 { source_bytes.get(i - 1) } else { None }, *current_char);
+        let symbol = detect_json_symbol(last_character, *current_char);
+        last_character = Some(current_char);
         if symbol == JsonSymbol::Whitespace {
             if !string_started {
                 if !whitespace_started {
