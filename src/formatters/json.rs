@@ -13,19 +13,25 @@ pub fn pretty_json(source: String) -> String {
     let mut string_started = false;
     let mut whitespace_started = false;
     let mut last_character = None;
+    let mut json_started = false;
 
     for (i, current_char) in source_bytes.iter().enumerate() {
         let symbol = detect_json_symbol(last_character, *current_char);
         last_character = Some(current_char);
+
+        if !json_started && symbol != JsonSymbol::ObjectOrArrayStart {
+            continue;
+        }
+
+        json_started = true;
+
         if symbol == JsonSymbol::Whitespace {
             if !string_started {
                 if !whitespace_started {
                     whitespace_started = true;
                     result.extend_from_slice(&source_bytes[source_rewrite_pos..i]);
-                    source_rewrite_pos = i + 1;
-                } else {
-                    source_rewrite_pos = i + 1;
                 }
+                source_rewrite_pos = i + 1;
             }
             continue;
         }
@@ -71,6 +77,10 @@ pub fn pretty_json(source: String) -> String {
                     result.push(closing_bracket);
                 }
             }
+        }
+
+        if symbol == JsonSymbol::ObjectOrArrayEnd && next_indent == 0 {
+            json_started = false;
         }
     }
 
@@ -121,7 +131,7 @@ mod tests {
 
     #[test]
     fn should_format_json_as_pretty() {
-        let original = r##"{"glossary":[{"title":"example glossary","GlossDiv":{"title":"S","available":true,"number":123.22,"GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as \"DocBook\".","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}]}"##;
+        let original = r##"{"glossary":[{"title":"example glossary","GlossDiv":{"title":"S","numbers":[1,2,3],"available":true,"number":123.22,"GlossList":{"GlossEntry":{"ID":"SGML","SortAs":"SGML","GlossTerm":"Standard Generalized Markup Language","Acronym":"SGML","Abbrev":"ISO 8879:1986","GlossDef":{"para":"A meta-markup language, used to create markup languages such as \"DocBook\".","GlossSeeAlso":["GML","XML"]},"GlossSee":"markup"}}}}]}"##;
 
         let expected = r##"{
   "glossary": [
@@ -129,6 +139,11 @@ mod tests {
       "title": "example glossary",
       "GlossDiv": {
         "title": "S",
+        "numbers": [
+          1,
+          2,
+          3
+        ],
         "available": true,
         "number": 123.22,
         "GlossList": {
