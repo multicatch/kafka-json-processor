@@ -22,7 +22,7 @@ fn main() {
 }
 
 fn add_static_field(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    message.insert_str("abc".to_string(), "xyz".to_string());
+    message.insert_str("static_field".to_string(), "example".to_string());
     Ok(())
 }
 
@@ -44,4 +44,30 @@ fn format_json_field(input: &Value, message: &mut OutputMessage) -> ProcessingRe
         message.insert_str("pretty_json".to_string(), pretty_json(json));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod simulations {
+    use std::collections::HashMap;
+    use log::LevelFilter;
+    use kafka_json_processor::simulation::simulate_streams_from_default_folder;
+    use kafka_json_processor::Stream;
+    use crate::{add_static_field, format_json_field, format_xml_field};
+
+    #[test]
+    fn example() {
+        env_logger::builder()
+            .is_test(true)
+            .filter_level(LevelFilter::Trace)
+            .init();
+
+        let mut streams: HashMap<String, Stream> = HashMap::new();
+        streams.insert("example".to_string(), Stream {
+            source_topic: "example".to_string(),
+            target_topic: "example".to_string(),
+            processors: &[&add_static_field, &format_xml_field, &format_json_field],
+        });
+
+        simulate_streams_from_default_folder(streams);
+    }
 }

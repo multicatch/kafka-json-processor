@@ -16,6 +16,7 @@ mod consumer;
 mod producer;
 pub mod processor;
 pub mod formatters;
+pub mod simulation;
 
 #[derive(Clone)]
 pub struct Stream {
