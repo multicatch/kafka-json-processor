@@ -1,4 +1,5 @@
 [workspace]
 members = [
-    "kafka-json-processor-core"
+    "kafka-json-processor-core",
+    "kafka-json-processor-generator"
 ]
