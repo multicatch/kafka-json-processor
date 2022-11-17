@@ -3,3 +3,6 @@ members = [
     "kafka-json-processor-core",
     "kafka-json-processor-generator"
 ]
+exclude = [
+    "test-output"
+]

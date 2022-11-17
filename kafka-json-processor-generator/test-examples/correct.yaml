@@ -4,5 +4,6 @@ streams:
     output_topic: out
 
     processors:
-      - kind: xml_formatter
-        field: sample_xml
+      - kind: static_field
+        field: hello
+        value: world

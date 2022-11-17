@@ -1,23 +1,55 @@
 mod processors;
+mod project;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
-use std::fs::read_to_string;
+use std::fs::{create_dir_all, File, read_to_string};
+use std::io::Write;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use crate::processors::{create_processor_generators, generate_processors};
+use crate::project::{generate_cargo, generate_main};
 
 pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
-    template_path: P1, _output_path: P2
+    template_path: P1, output_path: P2
 ) -> Result<(), Box<dyn Error>> {
     let template = read_template(template_path)?;
 
-    let generators = create_processor_generators();
+    create_directories(&output_path)?;
 
-    template.streams.into_iter()
-        .for_each(|stream| {
-            let _ = generate_processors(stream, &generators);
-        });
+    let output_path = output_path.as_ref();
+
+    let cargo = generate_cargo(&template);
+    let cargo_file = output_path.join("Cargo.toml");
+    {
+        let mut cargo_file = File::create(cargo_file)?;
+        cargo_file.write_all(cargo.as_bytes())?;
+    }
+
+    let generators = create_processor_generators();
+    let streams = template.streams.into_iter()
+        .map(|stream| {
+            let processors = generate_processors(stream.clone(), &generators)?;
+            Ok(((stream.input_topic, stream.output_topic), processors))
+        })
+        .collect::<Result<BTreeMap<_, _>, Box<dyn Error>>>()?;
+
+    let main = generate_main(streams);
+    let main_file = output_path.join("src").join("main.rs");
+    {
+        let mut main_file = File::create(main_file)?;
+        main_file.write_all(main.as_bytes())?;
+    }
+
+    Ok(())
+}
+
+fn create_directories<P: AsRef<Path>>(base_path: P) -> Result<(), Box<dyn Error>> {
+    let path = base_path.as_ref();
+    create_dir_all(path)?;
+
+    let src_dir = path.join("src");
+    create_dir_all(&src_dir)?;
 
     Ok(())
 }
