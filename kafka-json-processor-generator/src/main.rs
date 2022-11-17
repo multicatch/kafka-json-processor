@@ -1,13 +1,13 @@
 use clap::{arg, Parser};
 use log::{error, info};
-use kafka_json_processor_generator::parse_and_generate;
+use kafka_json_processor_generator::read_and_parse_and_generate;
 
 fn main() {
     env_logger::init();
 
     let args = Args::parse();
 
-    match parse_and_generate(args.template, args.output) {
+    match read_and_parse_and_generate(args.template, args.output) {
         Ok(_) => info!("Project successfully generated!"),
         Err(e) => error!("Generation failed. {e}")
     }

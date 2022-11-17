@@ -1,0 +1,8 @@
+name: "Example processor"
+streams:
+  - input_topic: in
+    output_topic: out
+
+    processors:
+      - kind: xml_formatter
+        field: sample_xml
