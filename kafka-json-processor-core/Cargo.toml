@@ -1,5 +1,5 @@
 [package]
-name = "kafka-json-processor-core"
+name = "kafka_json_processor_core"
 version = "0.1.0"
 edition = "2021"
 

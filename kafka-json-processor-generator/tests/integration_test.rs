@@ -11,7 +11,11 @@ fn generate_and_build() {
     let input_template = root.join("kafka-json-processor-generator/test-examples/correct.yaml");
     let output_dir = root.join("test-output");
 
-    let result = read_and_parse_and_generate(input_template, output_dir.clone());
+    let result = read_and_parse_and_generate(
+        input_template,
+        output_dir.clone(),
+        Some("../kafka-json-processor-core".to_string())
+    );
 
     assert!(result.is_ok(), "Generation failed. {}", result.err().unwrap());
 

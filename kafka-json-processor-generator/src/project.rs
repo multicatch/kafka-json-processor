@@ -2,11 +2,16 @@ use std::collections::BTreeMap;
 use crate::processors::Processor;
 use crate::Template;
 
-pub fn generate_cargo(template: &Template) -> String {
-    CARGO_TOML.replace(PROJECT_NAME, &template.name
-        .replace(' ', "-")
-        .to_lowercase()
-    )
+pub fn generate_cargo(template: &Template, core_path: Option<String>) -> String {
+    CARGO_TOML
+        .replace(PROJECT_NAME, &template.name
+            .replace(' ', "-")
+            .to_lowercase(),
+        )
+        .replace(CORE_VERSION, &core_path
+            .map(|path| format!("{{ path = \"{}\" }}", path))
+            .unwrap_or("\"0.1.0\"".to_string())
+        )
 }
 
 pub fn generate_main(streams: BTreeMap<(String, String), Vec<Processor>>) -> String {
@@ -47,10 +52,11 @@ edition = "2021"
 log = "0.4.17"
 env_logger = "0.9.0"
 serde_json = "1.0.83"
-kafka_json_processor_core = "0.1.0"
+kafka_json_processor_core = %%CORE_VERSION%%
 "##;
 
 const PROJECT_NAME: &str = "%%PROJECT_NAME%%";
+const CORE_VERSION: &str = "%%CORE_VERSION%%";
 
 const MAIN: &str = r##"#![allow(unused_variables, unused_imports)]
 
@@ -101,14 +107,14 @@ mod test {
         streams.insert(("abc".to_string(), "def".to_string()), vec![
             Processor {
                 function_name: "function_1".to_string(),
-                function_body:  r##"
+                function_body: r##"
 fn function_1(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
     Ok(())
 }"##.to_string(),
             },
             Processor {
                 function_name: "function_2".to_string(),
-                function_body:  r##"
+                function_body: r##"
 fn function_2(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
     Ok(())
 }"##.to_string(),
@@ -125,7 +131,7 @@ fn function_3(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<
             },
             Processor {
                 function_name: "function_4".to_string(),
-                function_body:  r##"
+                function_body: r##"
 fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
     Ok(())
 }"##.to_string(),
@@ -176,15 +182,14 @@ fn function_3(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<
 fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
     Ok(())
 }"##, main);
-
     }
 
     #[test]
     fn should_generate_cargo() {
         let actual = generate_cargo(&Template {
             name: "sample-project Abcdef".to_string(),
-            streams: vec![]
-        });
+            streams: vec![],
+        }, None);
 
         assert_eq!(r##"[package]
 name = "sample-project-abcdef"

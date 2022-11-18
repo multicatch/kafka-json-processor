@@ -11,7 +11,7 @@ use crate::processors::{create_processor_generators, generate_processors};
 use crate::project::{generate_cargo, generate_main};
 
 pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
-    template_path: P1, output_path: P2
+    template_path: P1, output_path: P2, core_path: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
     let template = read_template(template_path)?;
 
@@ -19,7 +19,7 @@ pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
 
     let output_path = output_path.as_ref();
 
-    let cargo = generate_cargo(&template);
+    let cargo = generate_cargo(&template, core_path);
     let cargo_file = output_path.join("Cargo.toml");
     {
         let mut cargo_file = File::create(cargo_file)?;
