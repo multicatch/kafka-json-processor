@@ -10,7 +10,7 @@ pub fn generate_cargo(template: &Template, core_path: Option<String>) -> String 
         )
         .replace(CORE_VERSION, &core_path
             .map(|path| format!("{{ path = \"{}\" }}", path))
-            .unwrap_or("\"0.1.0\"".to_string())
+            .unwrap_or_else(|| "\"0.1.0\"".to_string())
         )
 }
 
@@ -28,6 +28,13 @@ pub fn generate_main(streams: BTreeMap<(String, String), Vec<Processor>>) -> Str
         })
         .collect();
 
+    let function_names: String =  streams.iter()
+        .flat_map(|(_, processors)| {
+            processors.iter()
+                .map(|p| format!("{}, ",p.function_name))
+        })
+        .collect();
+
     let functions: String = streams.into_iter()
         .flat_map(|(_, processors)| {
             processors.into_iter()
@@ -35,9 +42,12 @@ pub fn generate_main(streams: BTreeMap<(String, String), Vec<Processor>>) -> Str
         })
         .collect();
 
-    format!("{}{}",
+    format!("{}{}{}",
             MAIN.replace(STREAMS, &streams_config),
-            functions
+            functions,
+            SIMULATIONS
+                .replace(FUNCTION_IMPORTS, &function_names)
+                .replace(STREAMS, &streams_config)
     )
 }
 
@@ -92,6 +102,32 @@ const SINGLE_STREAM: &str = r##"
 const INPUT_TOPIC: &str = "%%INPUT_TOPIC%%";
 const OUTPUT_TOPIC: &str = "%%OUTPUT_TOPIC%%";
 const PROCESSORS: &str = "%%PROCESSORS%%";
+
+const SIMULATIONS: &str = r##"
+
+#[cfg(test)]
+mod simulations {
+    use std::collections::HashMap;
+    use log::LevelFilter;
+    use kafka_json_processor_core::simulation::simulate_streams_from_default_folder;
+    use kafka_json_processor_core::Stream;
+    use crate::{%%FUNCTION_IMPORTS%%};
+
+    #[test]
+    fn simulate_streams() {
+        env_logger::builder()
+            .filter_level(LevelFilter::Trace)
+            .init();
+
+        let mut streams: HashMap<String, Stream> = HashMap::new();
+%%STREAMS%%
+
+        simulate_streams_from_default_folder(streams);
+    }
+}
+"##;
+
+const FUNCTION_IMPORTS: &str = "%%FUNCTION_IMPORTS%%";
 
 
 #[cfg(test)]
@@ -181,7 +217,39 @@ fn function_3(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<
 }
 fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
     Ok(())
-}"##, main);
+}
+
+#[cfg(test)]
+mod simulations {
+    use std::collections::HashMap;
+    use log::LevelFilter;
+    use kafka_json_processor_core::simulation::simulate_streams_from_default_folder;
+    use kafka_json_processor_core::Stream;
+    use crate::{function_1, function_2, function_3, function_4, };
+
+    #[test]
+    fn simulate_streams() {
+        env_logger::builder()
+            .filter_level(LevelFilter::Trace)
+            .init();
+
+        let mut streams: HashMap<String, Stream> = HashMap::new();
+
+    streams.insert("abc_def".to_string(), Stream {
+        source_topic: "abc".to_string(),
+        target_topic: "def".to_string(),
+        processors: &[&function_1, &function_2, ],
+    });
+    streams.insert("topic1_topic2".to_string(), Stream {
+        source_topic: "topic1".to_string(),
+        target_topic: "topic2".to_string(),
+        processors: &[&function_3, &function_4, ],
+    });
+
+        simulate_streams_from_default_folder(streams);
+    }
+}
+"##, main);
     }
 
     #[test]

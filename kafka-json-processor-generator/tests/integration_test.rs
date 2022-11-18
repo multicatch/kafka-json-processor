@@ -27,10 +27,20 @@ fn generate_and_build() {
         .status()
         .expect("Failed to run cargo build");
 
+    assert!(exit_status.success(), "Cargo build failed with status {exit_status}");
+
+    let exit_status = Command::new("cargo")
+        .args(["test"])
+        .current_dir(output_dir.clone())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .expect("Failed to run cargo test");
+
+    assert!(exit_status.success(), "Cargo test failed with status {exit_status}");
+
     println!("Removing test-output...");
     remove_dir_all(output_dir).unwrap();
-
-    assert!(exit_status.success(), "Cargo build failed with status {exit_status}");
 }
 
 fn root_project_dir() -> PathBuf {

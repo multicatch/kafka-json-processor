@@ -91,8 +91,9 @@ mod test {
                     output_topic: "out".to_string(),
                     processors: vec![
                         HashMap::from([
-                            ("kind".to_string(), "xml_formatter".to_string()),
-                            ("field".to_string(), "sample_xml".to_string())
+                            ("kind".to_string(), "static_field".to_string()),
+                            ("field".to_string(), "hello".to_string()),
+                            ("value".to_string(), "world".to_string()),
                         ])
                     ]
                 }
