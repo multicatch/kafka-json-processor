@@ -1,8 +1,10 @@
 [Input]
 {
+    "abc": "test"
 }
 
 [Expected]
 {
-	"hello": "world"
+	"hello": "world",
+	"def": "test"
 }

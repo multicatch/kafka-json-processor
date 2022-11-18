@@ -19,7 +19,7 @@ pub fn static_field(function_name: &str, config: &HashMap<String, String>) -> Re
 
     let value = config.get("value")
         .ok_or_else(|| RequiredConfigNotFound {
-            function_name: field_name.to_string(),
+            function_name: function_name.to_string(),
             field_name: "value".to_string(),
             description: None
         })?

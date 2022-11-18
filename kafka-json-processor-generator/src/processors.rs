@@ -1,4 +1,5 @@
 mod static_field;
+mod copy_field;
 
 use std::collections::HashMap;
 use std::error::Error;
@@ -22,6 +23,7 @@ pub enum ProcessorGenerationError {
     GeneratorUnknown {
         name: String,
     },
+    #[allow(dead_code)] // API for any other case, currently unused, but needed for extensions
     OtherError {
         function_name: String,
         error: Box<dyn Error>
@@ -56,6 +58,7 @@ pub type ProcessorFn = &'static (dyn Fn(&str, &HashMap<String, String>) -> Resul
 pub fn create_processor_generators() -> HashMap<String, ProcessorFn> {
     let mut m: HashMap<String, ProcessorFn> = HashMap::new();
     m.insert("static_field".to_string(), &static_field::static_field);
+    m.insert("copy_field".to_string(), &copy_field::copy_field);
     m
 }
 
