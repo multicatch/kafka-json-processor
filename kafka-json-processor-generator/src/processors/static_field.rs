@@ -34,7 +34,7 @@ pub fn static_field(function_name: &str, config: &HashMap<String, String>) -> Re
 
 const FUNCTION_TEMPLATE: &str = r##"
 fn %%FUNCTION_NAME%%(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    message.insert_str("%%FIELD_NAME%%".to_string(), "%%VALUE%%".to_string());
+    message.insert_val(&[ObjectKey::Key("%%FIELD_NAME%%".to_string())], Value::String("%%VALUE%%".to_string()))?;
     Ok(())
 }
 "##;

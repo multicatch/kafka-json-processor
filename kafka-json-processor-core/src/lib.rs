@@ -17,6 +17,7 @@ mod producer;
 pub mod processor;
 pub mod formatters;
 pub mod simulation;
+pub mod error;
 
 #[derive(Clone)]
 pub struct Stream {

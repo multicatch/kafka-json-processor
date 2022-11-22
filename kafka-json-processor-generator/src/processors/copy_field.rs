@@ -33,11 +33,11 @@ pub fn copy_field(function_name: &str, config: &HashMap<String, String>) -> Resu
 
 const FUNCTION_TEMPLATE: &str = r##"
 fn %%FUNCTION_NAME%%(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    if let Some(value) = input.get("%%SOURCE_FIELD%%")
+    if let Some(value) = input.get_val(&[ObjectKey::Key("%%SOURCE_FIELD%%".to_string())])?
         .and_then(|v| v.as_str())
         .map(|v| v.to_string()) {
 
-        message.insert_str("%%TARGET_FIELD%%".to_string(), value);
+        message.insert_val(&[ObjectKey::Key("%%TARGET_FIELD%%".to_string())], Value::String(value))?;
     } else {
         debug!("Field [%%SOURCE_FIELD%%] is not present - skipping field copy");
     }

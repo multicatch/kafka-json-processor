@@ -120,7 +120,7 @@ mod tests {
     use serde_json::Value;
     use crate::formatters::json::pretty_json;
     use crate::formatters::xml::pretty_xml;
-    use crate::processor::{OutputMessage, ProcessingResult};
+    use crate::processor::{ObjectKey, ObjectTree, OutputMessage, ProcessingResult};
     use crate::simulation::{read_data_from, simulate_streams_from_default_folder};
     use crate::Stream;
 
@@ -142,26 +142,26 @@ mod tests {
     }
 
     fn add_static_field(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-        message.insert_str("static_field".to_string(), "example".to_string());
+        message.insert_val(&[ObjectKey::Key("static_field".to_string())], Value::String("example".to_string()))?;
         Ok(())
     }
 
     fn format_xml_field(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-        if let Some(xml) = input.get("xml")
+        if let Some(xml) = input.get_val(&[ObjectKey::Key("xml".to_string())])?
             .and_then(|v| v.as_str())
-            .map(|v| v.to_string()) {
+            .map(|v| v.to_string())  {
 
-            message.insert_str("pretty_xml".to_string(), pretty_xml(xml));
+            message.insert_val(&[ObjectKey::Key("pretty_xml".to_string())], Value::String(pretty_xml(xml)))?;
         }
         Ok(())
     }
 
     fn format_json_field(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-        if let Some(json) = input.get("json")
+        if let Some(json) = input.get_val(&[ObjectKey::Key("json".to_string())])?
             .and_then(|v| v.as_str())
-            .map(|v| v.to_string()) {
+            .map(|v| v.to_string())  {
 
-            message.insert_str("pretty_json".to_string(), pretty_json(json));
+            message.insert_val(&[ObjectKey::Key("pretty_json".to_string())], Value::String(pretty_json(json)))?;
         }
         Ok(())
     }

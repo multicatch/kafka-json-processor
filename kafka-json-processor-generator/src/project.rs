@@ -73,7 +73,7 @@ const MAIN: &str = r##"#![allow(unused_variables, unused_imports)]
 use std::collections::HashMap;
 use log::{LevelFilter, trace, debug, error, info, warn};
 use serde_json::Value;
-use kafka_json_processor_core::processor::{OutputMessage, ProcessingResult};
+use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage, ProcessingResult};
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
@@ -180,7 +180,7 @@ fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<
 use std::collections::HashMap;
 use log::{LevelFilter, trace, debug, error, info, warn};
 use serde_json::Value;
-use kafka_json_processor_core::processor::{OutputMessage, ProcessingResult};
+use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage, ProcessingResult};
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
