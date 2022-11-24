@@ -5,8 +5,8 @@ streams:
 
     processors:
       - kind: static_field
-        field: hello
+        field: $.hello
         value: world
       - kind: copy_field
-        source_field: abc
-        target_field: def
+        source_field: $.abc[1]
+        target_field: $.def

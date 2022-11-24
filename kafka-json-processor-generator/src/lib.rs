@@ -92,13 +92,13 @@ mod test {
                     processors: vec![
                         HashMap::from([
                             ("kind".to_string(), "static_field".to_string()),
-                            ("field".to_string(), "hello".to_string()),
+                            ("field".to_string(), "$.hello".to_string()),
                             ("value".to_string(), "world".to_string()),
                         ]),
                         HashMap::from([
                             ("kind".to_string(), "copy_field".to_string()),
-                            ("source_field".to_string(), "abc".to_string()),
-                            ("target_field".to_string(), "def".to_string()),
+                            ("source_field".to_string(), "$.abc[1]".to_string()),
+                            ("target_field".to_string(), "$.def".to_string()),
                         ]),
                     ]
                 }

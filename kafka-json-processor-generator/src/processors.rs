@@ -4,7 +4,8 @@ mod copy_field;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use crate::processors::ProcessorGenerationError::{GeneratorUnknown, OtherError, RequiredConfigNotFound};
+use regex::Regex;
+use crate::processors::ProcessorGenerationError::{GeneratorUnknown, RequiredConfigNotFound};
 use crate::Stream;
 
 #[derive(Eq, PartialEq, Debug)]
@@ -13,7 +14,7 @@ pub struct Processor {
     pub function_body: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ProcessorGenerationError {
     RequiredConfigNotFound {
         function_name: String,
@@ -23,11 +24,6 @@ pub enum ProcessorGenerationError {
     GeneratorUnknown {
         name: String,
     },
-    #[allow(dead_code)] // API for any other case, currently unused, but needed for extensions
-    OtherError {
-        function_name: String,
-        error: Box<dyn Error>
-    }
 }
 
 impl Display for ProcessorGenerationError {
@@ -39,9 +35,6 @@ impl Display for ProcessorGenerationError {
                 ),
             GeneratorUnknown { name } =>
                 write!(f, "Failed to generate function. Generator is unknown: {}", name),
-
-            OtherError { function_name, error } =>
-                write!(f, "Processor generation error. Function: {}. Error: {}", function_name, error)
         }
     }
 }
@@ -94,11 +87,49 @@ fn generate_function_name(stream: &Stream, index: usize, kind: &str) -> String {
     format!("{}_{}_{}_{}", stream.input_topic, stream.output_topic, index, kind)
 }
 
+pub fn json_path_to_object_key(jsonpath: &str) -> String {
+    if !jsonpath.starts_with('$') {
+        return format!("&[Key(\"{}\".to_string())]", jsonpath.escape_for_json())
+    }
+
+    let result: Vec<String> = Regex::new(r"[.\[\]]")
+        .unwrap()
+        .split(jsonpath)
+        .skip(1)
+        .filter(|s| !s.is_empty())
+        .map(|s| match s.parse::<i64>() {
+            Ok(num) => format!("Index({})", num),
+            Err(_) => format!("Key(\"{}\".to_string())", s.escape_for_json()),
+        })
+        .collect();
+
+    format!("&[{}]", result.join(", "))
+}
+
+pub trait JsonFieldName {
+    fn escape_for_json(&self) -> String;
+}
+
+impl JsonFieldName for String {
+    fn escape_for_json(&self) -> String {
+        self.replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+    }
+}
+
+impl JsonFieldName for &str {
+    fn escape_for_json(&self) -> String {
+        self.to_string()
+            .escape_for_json()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
     use crate::{generate_processors, Stream};
-    use crate::processors::{Processor, ProcessorFn, ProcessorGenerationError};
+    use crate::processors::{json_path_to_object_key, Processor, ProcessorFn, ProcessorGenerationError};
 
     #[test]
     fn should_generate_function() {
@@ -126,5 +157,11 @@ mod test {
 
     fn test_generator(_function_name: &str, _config: &HashMap<String, String>) -> Result<String, ProcessorGenerationError> {
         Ok("result function".to_string())
+    }
+
+    #[test]
+    fn jsonpath() {
+        let string = json_path_to_object_key("$[0].phoneNumbers[1][test].type");
+        assert_eq!("&[Index(0), Key(\"phoneNumbers\".to_string()), Index(1), Key(\"test\".to_string()), Key(\"type\".to_string())]", string);
     }
 }

@@ -5,6 +5,7 @@ use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage,
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
+use kafka_json_processor_core::processor::ObjectKey::Key;
 
 fn main() {
     env_logger::builder()
@@ -22,26 +23,26 @@ fn main() {
 }
 
 fn add_static_field(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    message.insert_val(&[ObjectKey::Key("static_field".to_string())], Value::String("example".to_string()))?;
+    message.insert_val(&[Key("static_field".to_string())], Value::String("example".to_string()))?;
     Ok(())
 }
 
 fn format_xml_field(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    if let Some(xml) = input.get_val(&[ObjectKey::Key("xml".to_string())])?
+    if let Some(xml) = input.get_val(&[Key("xml".to_string())])?
         .and_then(|v| v.as_str())
         .map(|v| v.to_string()) {
 
-        message.insert_val(&[ObjectKey::Key("pretty_xml".to_string())], Value::String(pretty_xml(xml)))?;
+        message.insert_val(&[Key("pretty_xml".to_string())], Value::String(pretty_xml(xml)))?;
     }
     Ok(())
 }
 
 fn format_json_field(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    if let Some(json) = input.get_val(&[ObjectKey::Key("json".to_string())])?
+    if let Some(json) = input.get_val(&[Key("json".to_string())])?
         .and_then(|v| v.as_str())
         .map(|v| v.to_string())  {
 
-        message.insert_val(&[ObjectKey::Key("pretty_json".to_string())], Value::String(pretty_json(json)))?;
+        message.insert_val(&[Key("pretty_json".to_string())], Value::String(pretty_json(json)))?;
     }
     Ok(())
 }

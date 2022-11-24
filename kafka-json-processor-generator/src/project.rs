@@ -77,6 +77,7 @@ use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage,
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
+use kafka_json_processor_core::processor::ObjectKey::{Key, Index};
 
 fn main() {
     env_logger::builder()
@@ -184,6 +185,7 @@ use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage,
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
+use kafka_json_processor_core::processor::ObjectKey::{Key, Index};
 
 fn main() {
     env_logger::builder()
