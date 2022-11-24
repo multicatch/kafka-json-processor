@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use log::LevelFilter;
 use serde_json::Value;
-use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage, ProcessingResult};
+use kafka_json_processor_core::processor::{ObjectTree, OutputMessage, ProcessingResult};
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;

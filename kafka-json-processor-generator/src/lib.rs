@@ -1,5 +1,5 @@
-mod processors;
-mod project;
+pub mod processors;
+pub mod project;
 
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::processors::{create_processor_generators, generate_processors};
 use crate::project::{generate_cargo, generate_main};
 
+/// Reads template, parses it and generated project based on it.
 pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
     template_path: P1, output_path: P2, core_path: Option<String>,
 ) -> Result<(), Box<dyn Error>> {

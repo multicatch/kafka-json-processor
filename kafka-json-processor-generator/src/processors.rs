@@ -58,6 +58,11 @@ pub fn create_processor_generators() -> HashMap<String, ProcessorFn> {
 pub const FIELD_KEY: &str = "field";
 pub const KIND_KEY: &str = "kind";
 
+/// Generates code for all processors in a stream.
+///
+/// This function generates a vec of [`Processor`], which contains function name and function source.
+/// Each element represents a processor function which will be running as a part of the stream
+/// in the target JSON processor executable.
 pub fn generate_processors(stream: Stream, generators: &HashMap<String, ProcessorFn>) -> Result<Vec<Processor>, Box<dyn Error>> {
     stream.processors.iter()
         .enumerate()
@@ -87,6 +92,16 @@ fn generate_function_name(stream: &Stream, index: usize, kind: &str) -> String {
     format!("{}_{}_{}_{}", stream.input_topic, stream.output_topic, index, kind)
 }
 
+/// Function to generate valid ObjectKey accessor from JSONPath.
+///
+/// The generated accessor can be used as a part of processor function.
+/// This accessor is an interpreted version of JSONPath, which speeds up the processing.
+///
+/// ```rust
+/// # use kafka_json_processor_generator::processors::json_path_to_object_key;
+/// let string = json_path_to_object_key("$[0].phoneNumbers[1][test].type");
+/// assert_eq!("&[Index(0), Key(\"phoneNumbers\".to_string()), Index(1), Key(\"test\".to_string()), Key(\"type\".to_string())]", string);
+/// ```
 pub fn json_path_to_object_key(jsonpath: &str) -> String {
     if !jsonpath.starts_with('$') {
         return format!("&[Key(\"{}\".to_string())]", jsonpath.escape_for_json())
@@ -129,7 +144,7 @@ impl JsonFieldName for &str {
 mod test {
     use std::collections::HashMap;
     use crate::{generate_processors, Stream};
-    use crate::processors::{json_path_to_object_key, Processor, ProcessorFn, ProcessorGenerationError};
+    use crate::processors::{Processor, ProcessorFn, ProcessorGenerationError};
 
     #[test]
     fn should_generate_function() {
@@ -157,11 +172,5 @@ mod test {
 
     fn test_generator(_function_name: &str, _config: &HashMap<String, String>) -> Result<String, ProcessorGenerationError> {
         Ok("result function".to_string())
-    }
-
-    #[test]
-    fn jsonpath() {
-        let string = json_path_to_object_key("$[0].phoneNumbers[1][test].type");
-        assert_eq!("&[Index(0), Key(\"phoneNumbers\".to_string()), Index(1), Key(\"test\".to_string()), Key(\"type\".to_string())]", string);
     }
 }
