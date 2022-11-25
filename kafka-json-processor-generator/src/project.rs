@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
+use log::debug;
 use crate::processors::Processor;
 use crate::Template;
 
 pub fn generate_cargo(template: &Template, core_path: Option<String>) -> String {
+    debug!("Generating Cargo.toml");
     CARGO_TOML
         .replace(PROJECT_NAME, &template.name
             .replace(' ', "-")
@@ -15,6 +17,7 @@ pub fn generate_cargo(template: &Template, core_path: Option<String>) -> String 
 }
 
 pub fn generate_main(streams: BTreeMap<(String, String), Vec<Processor>>) -> String {
+    debug!("Generating main.rs");
     let streams_config: String = streams.iter()
         .map(|((input_topic, output_topic), processors)| {
             let processor_list: String = processors.iter()

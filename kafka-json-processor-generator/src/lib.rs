@@ -6,6 +6,7 @@ use std::error::Error;
 use std::fs::{create_dir_all, File, read_to_string};
 use std::io::Write;
 use std::path::Path;
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use crate::processors::{create_processor_generators, generate_processors};
 use crate::project::{generate_cargo, generate_main};
@@ -16,6 +17,7 @@ pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
 ) -> Result<(), Box<dyn Error>> {
     let template = read_template(template_path)?;
 
+    info!("Generating output project in {}", output_path.as_ref().display());
     create_directories(&output_path)?;
 
     let output_path = output_path.as_ref();
@@ -23,6 +25,7 @@ pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
     let cargo = generate_cargo(&template, core_path);
     let cargo_file = output_path.join("Cargo.toml");
     {
+        info!("Generation of Cargo.toml finished. Writing Cargo.toml.");
         let mut cargo_file = File::create(cargo_file)?;
         cargo_file.write_all(cargo.as_bytes())?;
     }
@@ -38,18 +41,23 @@ pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
     let main = generate_main(streams);
     let main_file = output_path.join("src").join("main.rs");
     {
+        info!("Generation of main.rs finished. Writing main.rs.");
         let mut main_file = File::create(main_file)?;
         main_file.write_all(main.as_bytes())?;
     }
+
+    info!("All files generated.");
 
     Ok(())
 }
 
 fn create_directories<P: AsRef<Path>>(base_path: P) -> Result<(), Box<dyn Error>> {
     let path = base_path.as_ref();
+    debug!("Creating directory: {}", path.display());
     create_dir_all(path)?;
 
     let src_dir = path.join("src");
+    debug!("Creating directory: {}", src_dir.display());
     create_dir_all(&src_dir)?;
 
     Ok(())

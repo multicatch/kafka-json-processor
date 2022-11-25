@@ -8,7 +8,7 @@ fn main() {
     let args = Args::parse();
 
     match read_and_parse_and_generate(args.template, args.output, args.core_path) {
-        Ok(_) => info!("Project successfully generated!"),
+        Ok(_) => info!("Project successfully created!"),
         Err(e) => error!("Generation failed. {e}")
     }
 }

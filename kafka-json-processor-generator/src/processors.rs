@@ -4,6 +4,7 @@ mod copy_field;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use log::debug;
 use regex::Regex;
 use crate::processors::ProcessorGenerationError::{GeneratorUnknown, RequiredConfigNotFound};
 use crate::Stream;
@@ -64,6 +65,7 @@ pub const KIND_KEY: &str = "kind";
 /// Each element represents a processor function which will be running as a part of the stream
 /// in the target JSON processor executable.
 pub fn generate_processors(stream: Stream, generators: &HashMap<String, ProcessorFn>) -> Result<Vec<Processor>, Box<dyn Error>> {
+    debug!("Generating processors...");
     stream.processors.iter()
         .enumerate()
         .map(|(index, config)| {
@@ -80,6 +82,7 @@ pub fn generate_processors(stream: Stream, generators: &HashMap<String, Processo
                 })?;
 
             let function_name = generate_function_name(&stream, index, kind);
+            debug!("Generating processor [{}] (kind: {})", function_name, kind);
             Ok(Processor {
                 function_name: function_name.clone(),
                 function_body: generate_source(&function_name, config)?,

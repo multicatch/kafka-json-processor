@@ -1,11 +1,14 @@
 use std::fs::remove_dir_all;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use log::LevelFilter;
 use kafka_json_processor_generator::read_and_parse_and_generate;
 
 #[test]
 fn generate_and_build() {
-    env_logger::builder().is_test(true).init();
+    env_logger::builder().is_test(true)
+        .filter_level(LevelFilter::Debug)
+        .init();
     let root = root_project_dir();
 
     let input_template = root.join("kafka-json-processor-generator/test-examples/correct.yaml");
