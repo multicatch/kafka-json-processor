@@ -34,7 +34,7 @@ pub fn static_field(function_name: &str, config: &HashMap<String, String>) -> Re
 }
 
 const FUNCTION_TEMPLATE: &str = r##"
-fn %%FUNCTION_NAME%%(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+fn %%FUNCTION_NAME%%(_input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     message.insert_val(%%TARGET_FIELD%%, Value::String("%%VALUE%%".to_string()))?;
     Ok(())
 }
@@ -56,7 +56,7 @@ mod test {
         config.insert("value".to_string(), "abcdef".to_string());
         let result = static_field("abc1", &config);
         assert_eq!(Ok(r##"
-fn abc1(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+fn abc1(_input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     message.insert_val(&[Key("example".to_string()), Index(0)], Value::String("abcdef".to_string()))?;
     Ok(())
 }

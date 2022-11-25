@@ -9,6 +9,12 @@ pub enum ProcessingError {
         reason: String,
     },
     EmptyKey,
+    FieldNotFound {
+        key: Vec<ObjectKey>,  
+    },
+    OtherError {
+        err: Box<dyn Error>
+    }
 }
 
 impl Display for ProcessingError {
@@ -18,8 +24,19 @@ impl Display for ProcessingError {
                 write!(f, "Object tree is incompatible with key [{:?}], reason: {}", invalid_key, reason),
             ProcessingError::EmptyKey =>
                 write!(f, "Illegal object tree key: Key is empty."),
+            ProcessingError::FieldNotFound { key } => 
+                write!(f, "No key in object: [{:?}]", key),
+            ProcessingError::OtherError { err } =>
+                write!(f, "Unexpected error while processing: {}", err),
+
         }
     }
 }
 
 impl Error for ProcessingError {}
+
+impl From<Box<dyn Error>> for ProcessingError {
+    fn from(err: Box<dyn Error>) -> Self {
+        ProcessingError::OtherError { err }
+    }
+}

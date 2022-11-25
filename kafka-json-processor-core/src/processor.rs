@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::mem::discriminant;
 use serde_json::{Map, Value};
-use log::{trace, error};
+use log::{trace, error, debug};
 use crate::error::ProcessingError;
 
 pub struct OutputMessage {
@@ -25,7 +25,7 @@ impl OutputMessage {
 }
 
 pub trait ObjectTree {
-    fn get_val(&self, key: &[ObjectKey]) -> Result<Option<&Value>, ProcessingError>;
+    fn get_val(&self, key: &[ObjectKey]) -> Result<&Value, ProcessingError>;
     fn insert_val(&mut self, key: &[ObjectKey], value: Value) -> Result<(), ProcessingError>;
 }
 
@@ -36,7 +36,7 @@ pub enum ObjectKey {
 }
 
 impl ObjectTree for OutputMessage {
-    fn get_val(&self, key: &[ObjectKey]) -> Result<Option<&Value>, ProcessingError> {
+    fn get_val(&self, key: &[ObjectKey]) -> Result<&Value, ProcessingError> {
         self.value.get_val(key)
     }
 
@@ -57,7 +57,7 @@ impl ObjectTree for OutputMessage {
 }
 
 impl ObjectTree for Value {
-    fn get_val(&self, key: &[ObjectKey]) -> Result<Option<&Value>, ProcessingError> {
+    fn get_val(&self, key: &[ObjectKey]) -> Result<&Value, ProcessingError> {
         if key.is_empty() {
             return Err(ProcessingError::EmptyKey);
         }
@@ -71,7 +71,7 @@ impl ObjectTree for Value {
             })
         }
 
-        Ok(node)
+        node.ok_or_else(|| ProcessingError::FieldNotFound { key: key.to_vec()})
     }
 
     fn insert_val(&mut self, key: &[ObjectKey], value: Value) -> Result<(), ProcessingError> {
@@ -193,7 +193,7 @@ pub struct SerializedOutputMessage {
 }
 
 pub type ProcessingResult<T> = Result<T, Box<dyn Error>>;
-pub type Processor = &'static (dyn Fn(&Value, &mut OutputMessage) -> ProcessingResult<()> + Sync + Send);
+pub type Processor = &'static (dyn Fn(&Value, &mut OutputMessage) -> Result<(), ProcessingError> + Sync + Send);
 
 pub fn process_payload(id: String, payload: &[u8], processors: &[Processor]) -> ProcessingResult<SerializedOutputMessage> {
     trace!("[{id}] Start of processing.");
@@ -202,7 +202,11 @@ pub fn process_payload(id: String, payload: &[u8], processors: &[Processor]) -> 
 
     for process in processors.iter() {
         if let Err(e) = process(&source, &mut message) {
-            error!("[{id}] Cannot process message. Reason: {e}");
+            if matches!(e, ProcessingError::FieldNotFound { .. }) {
+                debug!("[{id}] {e}");
+            } else {
+                error!("[{id}] Cannot process message. Reason: {e}");
+            }
         }
     }
 

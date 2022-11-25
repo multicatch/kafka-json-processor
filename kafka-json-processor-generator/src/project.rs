@@ -73,7 +73,8 @@ const MAIN: &str = r##"#![allow(unused_variables, unused_imports)]
 use std::collections::HashMap;
 use log::{LevelFilter, trace, debug, error, info, warn};
 use serde_json::Value;
-use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage, ProcessingResult};
+use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage};
+use kafka_json_processor_core::error::ProcessingError;
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
@@ -145,14 +146,14 @@ mod test {
             Processor {
                 function_name: "function_1".to_string(),
                 function_body: r##"
-fn function_1(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_1(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }"##.to_string(),
             },
             Processor {
                 function_name: "function_2".to_string(),
                 function_body: r##"
-fn function_2(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_2(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }"##.to_string(),
             },
@@ -162,14 +163,14 @@ fn function_2(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<
             Processor {
                 function_name: "function_3".to_string(),
                 function_body: r##"
-fn function_3(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_3(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }"##.to_string(),
             },
             Processor {
                 function_name: "function_4".to_string(),
                 function_body: r##"
-fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_4(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }"##.to_string(),
             },
@@ -181,7 +182,8 @@ fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<
 use std::collections::HashMap;
 use log::{LevelFilter, trace, debug, error, info, warn};
 use serde_json::Value;
-use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage, ProcessingResult};
+use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage};
+use kafka_json_processor_core::error::ProcessingError;
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
@@ -208,16 +210,16 @@ fn main() {
     run_processor(streams);
 }
 
-fn function_1(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_1(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }
-fn function_2(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_2(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }
-fn function_3(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_3(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }
-fn function_4(_input: &Value, _message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function_4(_input: &Value, _message: &mut OutputMessage) -> Result<(), ProcessingError> {
     Ok(())
 }
 

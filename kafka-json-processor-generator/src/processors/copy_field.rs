@@ -34,14 +34,12 @@ pub fn copy_field(function_name: &str, config: &HashMap<String, String>) -> Resu
 }
 
 const FUNCTION_TEMPLATE: &str = r##"
-fn %%FUNCTION_NAME%%(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+fn %%FUNCTION_NAME%%(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     if let Some(value) = input.get_val(%%SOURCE_FIELD%%)?
-        .and_then(|v| v.as_str())
+        .as_str()
         .map(|v| v.to_string()) {
 
         message.insert_val(%%TARGET_FIELD%%, Value::String(value))?;
-    } else {
-        debug!("Field [%%RAW_SOURCE_FIELD%%] is not present - skipping field copy");
     }
     Ok(())
 }
@@ -65,14 +63,12 @@ mod test {
         let result = copy_field("function1", &config);
 
         assert_eq!(Ok(r##"
-fn function1(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+fn function1(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     if let Some(value) = input.get_val(&[Key("te\"st".to_string())])?
-        .and_then(|v| v.as_str())
+        .as_str()
         .map(|v| v.to_string()) {
 
         message.insert_val(&[Index(0), Key("xd".to_string())], Value::String(value))?;
-    } else {
-        debug!("Field [$[te\"st]] is not present - skipping field copy");
     }
     Ok(())
 }

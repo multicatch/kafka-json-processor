@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use log::LevelFilter;
 use serde_json::Value;
-use kafka_json_processor_core::processor::{ObjectTree, OutputMessage, ProcessingResult};
+use kafka_json_processor_core::processor::{ObjectTree, OutputMessage};
 use kafka_json_processor_core::{run_processor, Stream};
+use kafka_json_processor_core::error::ProcessingError;
 use kafka_json_processor_core::formatters::json::pretty_json;
 use kafka_json_processor_core::formatters::xml::pretty_xml;
 use kafka_json_processor_core::processor::ObjectKey::Key;
@@ -22,14 +23,14 @@ fn main() {
     run_processor(streams);
 }
 
-fn add_static_field(_input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+fn add_static_field(_input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     message.insert_val(&[Key("static_field".to_string())], Value::String("example".to_string()))?;
     Ok(())
 }
 
-fn format_xml_field(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
-    if let Some(xml) = input.get_val(&[Key("xml".to_string())])?
-        .and_then(|v| v.as_str())
+fn format_xml_field(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
+    if let Some(xml) = input.get_val(&[Key("xml2".to_string())])?
+        .as_str()
         .map(|v| v.to_string()) {
 
         message.insert_val(&[Key("pretty_xml".to_string())], Value::String(pretty_xml(xml)))?;
@@ -37,9 +38,9 @@ fn format_xml_field(input: &Value, message: &mut OutputMessage) -> ProcessingRes
     Ok(())
 }
 
-fn format_json_field(input: &Value, message: &mut OutputMessage) -> ProcessingResult<()> {
+fn format_json_field(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     if let Some(json) = input.get_val(&[Key("json".to_string())])?
-        .and_then(|v| v.as_str())
+        .as_str()
         .map(|v| v.to_string())  {
 
         message.insert_val(&[Key("pretty_json".to_string())], Value::String(pretty_json(json)))?;
