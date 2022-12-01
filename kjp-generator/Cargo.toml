@@ -1,5 +1,5 @@
 [package]
-name = "kafka_json_processor_generator"
+name = "kjp_generator"
 version = "0.1.0"
 edition = "2021"
 

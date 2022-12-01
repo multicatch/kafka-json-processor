@@ -1,6 +1,6 @@
 use clap::{arg, Parser};
 use log::{error, info};
-use kafka_json_processor_generator::read_and_parse_and_generate;
+use kjp_generator::read_and_parse_and_generate;
 
 fn main() {
     env_logger::init();

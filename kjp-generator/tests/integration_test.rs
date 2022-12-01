@@ -2,7 +2,7 @@ use std::fs::remove_dir_all;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use log::LevelFilter;
-use kafka_json_processor_generator::read_and_parse_and_generate;
+use kjp_generator::read_and_parse_and_generate;
 
 #[test]
 fn generate_and_build() {
@@ -11,7 +11,7 @@ fn generate_and_build() {
         .init();
     let root = root_project_dir();
 
-    let input_template = root.join("kafka-json-processor-generator/test-examples/correct.yaml");
+    let input_template = root.join("kjp-generator/test-examples/correct.yaml");
     let output_dir = root.join("test-output");
 
     let result = read_and_parse_and_generate(
@@ -49,7 +49,7 @@ fn generate_and_build() {
 fn root_project_dir() -> PathBuf {
     let working_dir = PathBuf::from(".");
     let mut working_dir = working_dir.canonicalize().unwrap();
-    let in_generator_dir = working_dir.ends_with("kafka-json-processor-generator");
+    let in_generator_dir = working_dir.ends_with("kjp-generator");
 
     if in_generator_dir {
         working_dir.pop();

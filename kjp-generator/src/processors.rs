@@ -101,7 +101,7 @@ fn generate_function_name(stream: &Stream, index: usize, kind: &str) -> String {
 /// This accessor is an interpreted version of JSONPath, which speeds up the processing.
 ///
 /// ```rust
-/// # use kafka_json_processor_generator::processors::json_path_to_object_key;
+/// # use kjp_generator::processors::json_path_to_object_key;
 /// let string = json_path_to_object_key("$[0].phoneNumbers[1][test].type");
 /// assert_eq!("&[Index(0), Key(\"phoneNumbers\".to_string()), Index(1), Key(\"test\".to_string()), Key(\"type\".to_string())]", string);
 /// ```

@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "kafka-json-processor-core",
-    "kafka-json-processor-generator"
+    "kjp-generator",
+    "kjp-generator-plugin"
 ]
 exclude = [
     "test-output"
