@@ -2,7 +2,7 @@ use std::error::Error;
 use std::mem::discriminant;
 use serde_json::{Map, Value};
 use log::{trace, error, debug};
-use crate::error::ProcessingError;
+use crate::error::{ErrorKind, ProcessingError};
 
 pub struct OutputMessage {
     pub key: Option<String>,
@@ -42,7 +42,7 @@ impl ObjectTree for OutputMessage {
 
     fn insert_val(&mut self, key: &[ObjectKey], value: Value) -> Result<(), ProcessingError> {
         if key.is_empty() {
-            return Err(ProcessingError::EmptyKey);
+            return Err(ErrorKind::EmptyKey.into());
         }
 
         if let Value::Null = self.value {
@@ -59,7 +59,7 @@ impl ObjectTree for OutputMessage {
 impl ObjectTree for Value {
     fn get_val(&self, key: &[ObjectKey]) -> Result<&Value, ProcessingError> {
         if key.is_empty() {
-            return Err(ProcessingError::EmptyKey);
+            return Err(ErrorKind::EmptyKey.into());
         }
 
         let mut node = Some(self);
@@ -71,19 +71,19 @@ impl ObjectTree for Value {
             })
         }
 
-        node.ok_or_else(|| ProcessingError::FieldNotFound { key: key.to_vec()})
+        node.ok_or_else(|| ErrorKind::FieldNotFound { key: key.to_vec()}.into())
     }
 
     fn insert_val(&mut self, key: &[ObjectKey], value: Value) -> Result<(), ProcessingError> {
         if key.is_empty() {
-            return Err(ProcessingError::EmptyKey);
+            return Err(ErrorKind::EmptyKey.into());
         }
 
         if let Value::Null = self {
-            return Err(ProcessingError::InvalidObjectTree {
+            return Err(ErrorKind::InvalidObjectTree {
                 invalid_key: key.to_vec(),
                 reason: "Root node is null.".to_string(),
-            });
+            }.into());
         }
 
         let mut cur_value = self;
@@ -101,11 +101,11 @@ impl ObjectTree for Value {
 }
 
 fn fill_key_in_error(e: ProcessingError, key: &[ObjectKey]) -> ProcessingError {
-    match e {
-        ProcessingError::InvalidObjectTree { reason, .. } => ProcessingError::InvalidObjectTree {
+    match e.inner {
+        ErrorKind::InvalidObjectTree { reason, .. } => ErrorKind::InvalidObjectTree {
             invalid_key: key.to_vec(),
             reason
-        },
+        }.into(),
         _ => e,
     }
 }
@@ -121,10 +121,10 @@ fn insert_node<'a>(node: &'a mut Value, key: &ObjectKey, child: &ObjectKey) -> R
 
 fn insert_child<'a>(node: &'a mut Value, key: &ObjectKey, child: Value) -> Result<&'a mut Value, ProcessingError> {
     if let Value::Null = node {
-        return Err(ProcessingError::InvalidObjectTree {
+        return Err(ErrorKind::InvalidObjectTree {
             invalid_key: vec![key.clone()],
             reason: "Node is null.".to_string(),
-        });
+        }.into());
     }
 
     match key {
@@ -137,10 +137,10 @@ fn insert_child<'a>(node: &'a mut Value, key: &ObjectKey, child: Value) -> Resul
 
                 Ok(values.get_mut(k).unwrap())
             } else {
-                Err(ProcessingError::InvalidObjectTree {
+                Err(ErrorKind::InvalidObjectTree {
                     invalid_key: vec![key.clone()],
                     reason: "Node has incompatible type, Object expected.".to_string(),
-                })
+                }.into())
             }
         }
 
@@ -157,10 +157,10 @@ fn insert_child<'a>(node: &'a mut Value, key: &ObjectKey, child: Value) -> Resul
 
                 Ok(&mut values[i])
             } else {
-                Err(ProcessingError::InvalidObjectTree {
+                Err(ErrorKind::InvalidObjectTree {
                     invalid_key: vec![key.clone()],
                     reason: "Node has incompatible type, Array expected.".to_string(),
-                })
+                }.into())
             }
         }
     }
@@ -174,10 +174,10 @@ fn verify_type_compatibility(node: &Value, child: &Value) -> Result<(), Processi
     match node {
         Value::Object(_) | Value::Array(_) => {
             if node_discriminant != child_discriminant {
-                return Err(ProcessingError::InvalidObjectTree {
+                return Err(ErrorKind::InvalidObjectTree {
                     invalid_key: vec![],
                     reason: format!("Child node has incompatible type, cannot merge {:?} into {:?}.", child_discriminant, node_discriminant),
-                });
+                }.into());
             }
         }
 
@@ -202,7 +202,7 @@ pub fn process_payload(id: String, payload: &[u8], processors: &[Processor]) -> 
 
     for process in processors.iter() {
         if let Err(e) = process(&source, &mut message) {
-            if matches!(e, ProcessingError::FieldNotFound { .. }) {
+            if matches!(e.inner, ErrorKind::FieldNotFound { .. }) {
                 debug!("[{id}] {e}");
             } else {
                 error!("[{id}] Cannot process message. Reason: {e}");
