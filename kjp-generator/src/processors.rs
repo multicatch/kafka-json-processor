@@ -1,6 +1,3 @@
-mod static_field;
-mod copy_field;
-
 use std::collections::HashMap;
 use std::error::Error;
 use std::ffi::OsStr;
@@ -9,6 +6,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use log::{debug, info, trace};
+use regex::{Captures, Regex};
+use kjp_generator_plugin::json_path_to_object_key;
 use crate::processors::ProcessorGenerationError::{GeneratorUnknown, RequiredConfigNotFound};
 use crate::Stream;
 
@@ -137,6 +136,8 @@ fn generate_source<P: AsRef<OsStr>>(generator_path: P, function_name: &str, conf
             args.push(value);
         });
 
+    trace!("Running [{:?}] with arguments {:?}", generator_path.as_ref(), args);
+
     let output = Command::new(&generator_path)
         .args(args)
         .stdout(Stdio::piped())
@@ -161,7 +162,17 @@ fn generate_source<P: AsRef<OsStr>>(generator_path: P, function_name: &str, conf
 
     trace!("[{} output] {}", generator_path_str, result);
 
+    let jsonpath_regex = Regex::new("(##JSONPATH\\(.*\\)##)").unwrap();
+
     interpret_child_output(generator_path_str, result)
+        .map(|source| {
+            jsonpath_regex.replace_all(&source, |caps: &Captures| {
+                trace!("Replacing {} with actual object tree accessor.", &caps[1]);
+                let capture = &caps[1];
+                let capture = &capture["##JSONPATH(".len()..capture.len()-")##".len()];
+                json_path_to_object_key(capture)
+            }).to_string()
+        })
 }
 
 fn interpret_child_output(generator_path_str: &str, output: String) -> Result<String, ProcessorGenerationError> {
@@ -173,7 +184,8 @@ fn interpret_child_output(generator_path_str: &str, output: String) -> Result<St
 
     let string: String = output.lines()
         .skip(1)
-        .collect();
+        .collect::<Vec<&str>>()
+        .join("\n");
 
     if output.starts_with("OK") {
         Ok(string)
