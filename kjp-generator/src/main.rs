@@ -7,7 +7,12 @@ fn main() {
 
     let args = Args::parse();
 
-    match read_and_parse_and_generate(args.template, args.output, args.core_path) {
+    match read_and_parse_and_generate(
+        args.template,
+        args.output,
+        args.core_path,
+        args.generators_path,
+    ) {
         Ok(_) => info!("Project successfully created!"),
         Err(e) => error!("Generation failed. {e}")
     }
@@ -27,4 +32,8 @@ struct Args {
     /// Custom path to kafka_json_processor_core
     #[arg(short, long)]
     core_path: Option<String>,
+
+    /// Custom path to processor generators
+    #[arg(short, long, default_value_t = String::from("./generators"))]
+    generators_path: String,
 }

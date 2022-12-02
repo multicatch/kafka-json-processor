@@ -1,13 +1,20 @@
-use std::collections::HashMap;
-use crate::processors::{json_path_to_object_key, JsonFieldName, ProcessorGenerationError};
-use crate::processors::ProcessorGenerationError::RequiredConfigNotFound;
+use kjp_generator_plugin::{GeneratorError, json_path_to_object_key, JsonFieldName, ProcessorParams, return_generated};
+use kjp_generator_plugin::GeneratorError::RequiredConfigNotFound;
+
+#[allow(dead_code)]
+fn main() {
+    return_generated(copy_field);
+}
 
 /// Generates a processor that copies a field to another field
 ///
 /// Available config options:
 ///  - "source_field" - source field name (field that should be copied)
 ///  - "target_field" - name of field to copy value to
-pub fn copy_field(function_name: &str, config: &HashMap<String, String>) -> Result<String, ProcessorGenerationError> {
+pub fn copy_field(params: ProcessorParams) -> Result<String, GeneratorError> {
+    let function_name = params.function_name;
+    let config = params.config;
+
     let raw_source_field = config.get("source_field")
         .ok_or_else(|| RequiredConfigNotFound {
             function_name: function_name.to_string(),
@@ -26,7 +33,7 @@ pub fn copy_field(function_name: &str, config: &HashMap<String, String>) -> Resu
     );
 
     Ok(FUNCTION_TEMPLATE
-        .replace(FUNCTION_NAME, function_name)
+        .replace(FUNCTION_NAME, &function_name)
         .replace(SOURCE_FIELD, &source_field)
         .replace(RAW_SOURCE_FIELD, &raw_source_field.escape_for_json())
         .replace(TARGET_FIELD, &target_field)
@@ -53,6 +60,7 @@ const TARGET_FIELD: &str = "%%TARGET_FIELD%%";
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
+    use kjp_generator_plugin::ProcessorParams;
     use crate::processors::copy_field::copy_field;
 
     #[test]
@@ -60,7 +68,10 @@ mod test {
         let mut config = HashMap::new();
         config.insert("source_field".to_string(), "$[te\"st]".to_string());
         config.insert("target_field".to_string(), "$[0].xd".to_string());
-        let result = copy_field("function1", &config);
+        let result = copy_field(ProcessorParams {
+            function_name: "function1".to_string(),
+            config
+        });
 
         assert_eq!(Ok(r##"
 fn function1(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {

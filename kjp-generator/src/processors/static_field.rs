@@ -1,6 +1,10 @@
-use std::collections::HashMap;
-use crate::processors::{FIELD_KEY, json_path_to_object_key, JsonFieldName, ProcessorGenerationError};
-use crate::processors::ProcessorGenerationError::RequiredConfigNotFound;
+use kjp_generator_plugin::{GeneratorError, json_path_to_object_key, JsonFieldName, ProcessorParams, return_generated};
+use kjp_generator_plugin::GeneratorError::RequiredConfigNotFound;
+
+#[allow(dead_code)]
+fn main() {
+    return_generated(static_field);
+}
 
 /// Generates a processor that adds a static field to JSON
 ///
@@ -8,12 +12,15 @@ use crate::processors::ProcessorGenerationError::RequiredConfigNotFound;
 /// Available config options:
 ///  - "field" - static field name
 ///  - "value" - a string to put in this field
-pub fn static_field(function_name: &str, config: &HashMap<String, String>) -> Result<String, ProcessorGenerationError> {
+pub fn static_field(params: ProcessorParams) -> Result<String, GeneratorError> {
+    let function_name = params.function_name;
+    let config = params.config;
+
     let target_field = json_path_to_object_key(
-        config.get(FIELD_KEY)
+        config.get("field")
             .ok_or_else(|| RequiredConfigNotFound {
                 function_name: function_name.to_string(),
-                field_name: FIELD_KEY.to_string(),
+                field_name: "field".to_string(),
                 description: None,
             })?
     );
@@ -27,7 +34,7 @@ pub fn static_field(function_name: &str, config: &HashMap<String, String>) -> Re
         .escape_for_json();
 
     Ok(FUNCTION_TEMPLATE
-        .replace(FUNCTION_NAME, function_name)
+        .replace(FUNCTION_NAME, &function_name)
         .replace(TARGET_FIELD, &target_field)
         .replace(VALUE, &value)
     )
@@ -47,6 +54,7 @@ const VALUE: &str = "%%VALUE%%";
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
+    use kjp_generator_plugin::ProcessorParams;
     use crate::processors::static_field::static_field;
 
     #[test]
@@ -54,7 +62,10 @@ mod test {
         let mut config = HashMap::new();
         config.insert("field".to_string(), "$.example[0]".to_string());
         config.insert("value".to_string(), "abcdef".to_string());
-        let result = static_field("abc1", &config);
+        let result = static_field(ProcessorParams {
+            function_name: "abc1".to_string(),
+            config,
+        });
         assert_eq!(Ok(r##"
 fn abc1(_input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
     message.insert_val(&[Key("example".to_string()), Index(0)], Value::String("abcdef".to_string()))?;

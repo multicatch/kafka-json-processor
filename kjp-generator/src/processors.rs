@@ -3,9 +3,12 @@ mod copy_field;
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::ffi::OsStr;
 use std::fmt::{Debug, Display, Formatter};
-use log::debug;
-use regex::Regex;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use log::{debug, info, trace};
 use crate::processors::ProcessorGenerationError::{GeneratorUnknown, RequiredConfigNotFound};
 use crate::Stream;
 
@@ -25,6 +28,9 @@ pub enum ProcessorGenerationError {
     GeneratorUnknown {
         name: String,
     },
+    GeneratorError {
+        description: String,
+    }
 }
 
 impl Display for ProcessorGenerationError {
@@ -36,144 +42,144 @@ impl Display for ProcessorGenerationError {
                 ),
             GeneratorUnknown { name } =>
                 write!(f, "Failed to generate function. Generator is unknown: {}", name),
+            ProcessorGenerationError::GeneratorError { description } =>
+                write!(f, "Failed to generate function. {description}"),
         }
     }
 }
 
 impl Error for ProcessorGenerationError {}
 
-pub type ProcessorFn = &'static (dyn Fn(&str, &HashMap<String, String>) -> Result<String, ProcessorGenerationError> + Sync + Send);
-
-/// Creates a map of code generators.
+/// Creates a map of code generators from given path.
 ///
 /// This creates a dictionary of all available processor types.
-/// Each generator is a function that generates a processor function body,
+/// Each generator is a program that generates a processor function body,
 /// which will be used for processing JSON messages in a given stream.
-pub fn create_processor_generators() -> HashMap<String, ProcessorFn> {
-    let mut m: HashMap<String, ProcessorFn> = HashMap::new();
-    m.insert("static_field".to_string(), &static_field::static_field);
-    m.insert("copy_field".to_string(), &copy_field::copy_field);
-    m
+///
+/// This function will scan given path for files. Each file will be treated as a separate generator.
+/// Each generator will have the name of corresponding file, but without extension.
+/// In case of name conflict, last found generator will overwrite previous ones.
+///
+/// Please be careful what directory you use, as the generation process runs executables from the directory.
+pub fn create_processor_generators<P: AsRef<Path>>(generators_path: P) -> Result<HashMap<String, PathBuf>, Box<dyn Error>> {
+    info!("Loading available generators from: {:?}", generators_path.as_ref());
+
+    let m: HashMap<String, PathBuf> = fs::read_dir(&generators_path)?
+        .into_iter()
+        .filter_map(|entry| entry.map_err(|err|  {
+            info!("Cannot read file in [{:?}]: {}", generators_path.as_ref(), err);
+            err
+        }).ok())
+        .filter(|entry| entry.file_type()
+            .map(|e| e.is_file())
+            .unwrap_or(false)
+        )
+        .filter_map(|entry| {
+            let generator_name = entry.path().file_stem()?.to_str()?.to_string();
+            let generator_path = entry.path();
+            info!("Generator found: {} [{:?}]", generator_name, generator_path);
+
+            Some((generator_name, generator_path))
+        })
+        .collect();
+
+    Ok(m)
 }
 
 pub const FIELD_KEY: &str = "field";
-pub const KIND_KEY: &str = "kind";
+pub const GENERATOR_KEY: &str = "generator";
 
 /// Generates code for all processors in a stream.
 ///
 /// This function generates a vec of [`Processor`], which contains function name and function source.
 /// Each element represents a processor function which will be running as a part of the stream
 /// in the target JSON processor executable.
-pub fn generate_processors(stream: Stream, generators: &HashMap<String, ProcessorFn>) -> Result<Vec<Processor>, Box<dyn Error>> {
+pub fn generate_processors(stream: Stream, generators: &HashMap<String, PathBuf>) -> Result<Vec<Processor>, Box<dyn Error>> {
     debug!("Generating processors...");
     stream.processors.iter()
         .enumerate()
         .map(|(index, config)| {
-            let kind = config.get(KIND_KEY)
+            let generator_name = config.get(GENERATOR_KEY)
                 .ok_or_else(|| RequiredConfigNotFound {
                     function_name: generate_function_name(&stream, index, "UNKNOWN"),
-                    field_name: KIND_KEY.to_string(),
+                    field_name: GENERATOR_KEY.to_string(),
                     description: None
                 })?;
 
-            let generate_source = generators.get(kind)
+            let generator_path = generators.get(generator_name)
                 .ok_or_else(|| GeneratorUnknown {
-                    name: kind.to_string()
+                    name: generator_name.to_string()
                 })?;
 
-            let function_name = generate_function_name(&stream, index, kind);
-            debug!("Generating processor [{}] (kind: {})", function_name, kind);
+            let function_name = generate_function_name(&stream, index, generator_name);
+            debug!("Generating processor [{}] (generator: {})", function_name, generator_name);
             Ok(Processor {
                 function_name: function_name.clone(),
-                function_body: generate_source(&function_name, config)?,
+                function_body: generate_source(generator_path, &function_name, config)?,
             })
         })
         .collect()
 }
 
-fn generate_function_name(stream: &Stream, index: usize, kind: &str) -> String {
-    format!("{}_{}_{}_{}", stream.input_topic, stream.output_topic, index, kind)
+fn generate_function_name(stream: &Stream, index: usize, generator_name: &str) -> String {
+    format!("{}_{}_{}_{}", stream.input_topic, stream.output_topic, index, generator_name)
 }
 
-/// Function to generate valid ObjectKey accessor from JSONPath.
-///
-/// The generated accessor can be used as a part of processor function.
-/// This accessor is an interpreted version of JSONPath, which speeds up the processing.
-///
-/// ```rust
-/// # use kjp_generator::processors::json_path_to_object_key;
-/// let string = json_path_to_object_key("$[0].phoneNumbers[1][test].type");
-/// assert_eq!("&[Index(0), Key(\"phoneNumbers\".to_string()), Index(1), Key(\"test\".to_string()), Key(\"type\".to_string())]", string);
-/// ```
-pub fn json_path_to_object_key(jsonpath: &str) -> String {
-    if !jsonpath.starts_with('$') {
-        return format!("&[Key(\"{}\".to_string())]", jsonpath.escape_for_json())
+fn generate_source<P: AsRef<OsStr>>(generator_path: P, function_name: &str, config: &HashMap<String, String>)
+    -> Result<String, ProcessorGenerationError> {
+
+    let generator_path_str = generator_path.as_ref().to_str().unwrap_or("");
+
+    let mut args = vec![function_name];
+    config.iter()
+        .for_each(|(key, value)| {
+            args.push(key);
+            args.push(value);
+        });
+
+    let output = Command::new(&generator_path)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .output()
+        .map_err(|err| ProcessorGenerationError::GeneratorError {
+            description: format!("Generator error process failed [{}]: {}", generator_path_str, err),
+        })?;
+
+    let result = String::from_utf8(output.stdout)
+        .map_err(|err| ProcessorGenerationError::GeneratorError {
+            description: format!("Cannot read output of [{}] (not a valid UTF-8 string): {}", generator_path_str, err),
+        })?;
+
+    if !output.status.success() {
+        return Err(ProcessorGenerationError::GeneratorError {
+            description: format!("[{}] Process finished without success (status: [{}], output: [{}])",
+                generator_path_str, output.status, result
+            )
+        })
     }
 
-    let result: Vec<String> = Regex::new(r"[.\[\]]")
-        .unwrap()
-        .split(jsonpath)
-        .skip(1)
-        .filter(|s| !s.is_empty())
-        .map(|s| match s.parse::<i64>() {
-            Ok(num) => format!("Index({})", num),
-            Err(_) => format!("Key(\"{}\".to_string())", s.escape_for_json()),
+    trace!("[{} output] {}", generator_path_str, result);
+
+    interpret_child_output(generator_path_str, result)
+}
+
+fn interpret_child_output(generator_path_str: &str, output: String) -> Result<String, ProcessorGenerationError> {
+    if output.is_empty() {
+        return Err(ProcessorGenerationError::GeneratorError {
+            description: format!("[{}] Process output is empty.", generator_path_str),
         })
+    }
+
+    let string: String = output.lines()
+        .skip(1)
         .collect();
 
-    format!("&[{}]", result.join(", "))
-}
-
-pub trait JsonFieldName {
-    fn escape_for_json(&self) -> String;
-}
-
-impl JsonFieldName for String {
-    fn escape_for_json(&self) -> String {
-        self.replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('\n', "\\n")
-    }
-}
-
-impl JsonFieldName for &str {
-    fn escape_for_json(&self) -> String {
-        self.to_string()
-            .escape_for_json()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use std::collections::HashMap;
-    use crate::{generate_processors, Stream};
-    use crate::processors::{Processor, ProcessorFn, ProcessorGenerationError};
-
-    #[test]
-    fn should_generate_function() {
-        let stream = Stream {
-            input_topic: "abc".to_string(),
-            output_topic: "def".to_string(),
-            processors: vec![
-                HashMap::from([
-                    ("kind".to_string(), "test_generator".to_string()),
-                ])
-            ]
-        };
-        let mut generators: HashMap<String, ProcessorFn> = HashMap::new();
-        generators.insert("test_generator".to_string(), &test_generator);
-
-        let result = generate_processors(stream, &generators);
-        assert!(result.is_ok());
-        assert_eq!(vec![
-            Processor {
-                function_name: "abc_def_0_test_generator".to_string(),
-                function_body: "result function".to_string()
-            },
-        ], result.unwrap());
-    }
-
-    fn test_generator(_function_name: &str, _config: &HashMap<String, String>) -> Result<String, ProcessorGenerationError> {
-        Ok("result function".to_string())
+    if output.starts_with("OK") {
+        Ok(string)
+    } else {
+        Err(ProcessorGenerationError::GeneratorError {
+            description: format!("[{}] {}.", generator_path_str, string),
+        })
     }
 }

@@ -4,9 +4,9 @@ streams:
     output_topic: out
 
     processors:
-      - kind: static_field
+      - generator: static_field
         field: $.hello
         value: world
-      - kind: copy_field
+      - generator: copy_field
         source_field: $.abc[1]
         target_field: $.def

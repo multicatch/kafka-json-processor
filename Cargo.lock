@@ -326,8 +326,8 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
+ "kjp_generator_plugin",
  "log",
- "regex",
  "serde",
  "serde_yaml",
 ]
@@ -335,6 +335,9 @@ dependencies = [
 [[package]]
 name = "kjp_generator_plugin"
 version = "0.1.0"
+dependencies = [
+ "regex",
+]
 
 [[package]]
 name = "lazy_static"

@@ -12,8 +12,11 @@ use crate::processors::{create_processor_generators, generate_processors};
 use crate::project::{generate_cargo, generate_main};
 
 /// Reads template, parses it and generated project based on it.
-pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
-    template_path: P1, output_path: P2, core_path: Option<String>,
+pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
+    template_path: P1,
+    output_path: P2,
+    core_path: Option<String>,
+    generators_path: P3,
 ) -> Result<(), Box<dyn Error>> {
     let template = read_template(template_path)?;
 
@@ -30,7 +33,7 @@ pub fn read_and_parse_and_generate<P1: AsRef<Path>, P2: AsRef<Path>>(
         cargo_file.write_all(cargo.as_bytes())?;
     }
 
-    let generators = create_processor_generators();
+    let generators = create_processor_generators(generators_path)?;
     let streams = template.streams.into_iter()
         .map(|stream| {
             let processors = generate_processors(stream.clone(), &generators)?;

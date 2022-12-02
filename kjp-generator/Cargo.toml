@@ -5,10 +5,22 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "kjp_generator"
+path = "src/main.rs"
+
+[[bin]]
+name = "copy_field"
+path = "src/processors/copy_field.rs"
+
+[[bin]]
+name = "static_field"
+path = "src/processors/static_field.rs"
+
 [dependencies]
 log = "0.4.17"
 env_logger = "0.9.0"
 clap = { version = "4.0.25", features = ["derive"] }
 serde = { version = "1.0.147", features = ["derive"] }
 serde_yaml = "0.9.14"
-regex = "1.7.0"
+kjp_generator_plugin = { path = "../kjp-generator-plugin" }
