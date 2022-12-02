@@ -195,3 +195,46 @@ fn interpret_child_output(generator_path_str: &str, output: String) -> Result<St
         })
     }
 }
+
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use crate::{generate_processors, Stream};
+    use crate::processors::Processor;
+
+    #[test]
+    fn should_generate_function() {
+        let stream = Stream {
+            input_topic: "abc".to_string(),
+            output_topic: "def".to_string(),
+            processors: vec![
+                HashMap::from([
+                    ("generator".to_string(), "test_generator".to_string()),
+                    ("field".to_string(), "static_field0".to_string()),
+                    ("value".to_string(), "hello world".to_string()),
+                ])
+            ]
+        };
+        let mut generators: HashMap<String, PathBuf> = HashMap::new();
+        generators.insert("test_generator".to_string(), PathBuf::from("../kjp-generator-generators/static_field.sh"));
+
+        let result = generate_processors(stream, &generators);
+        match result {
+            Ok(actual) =>
+                assert_eq!(vec![
+                    Processor {
+                        function_name: "abc_def_0_test_generator".to_string(),
+                        function_body: r#"fn abc_def_0_test_generator(_input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
+    message.insert_val(&[Key("static_field0".to_string())], Value::String("hello world".to_string()))?;
+    Ok(())
+}
+"#.to_string()
+                    },
+                ], actual),
+            Err(e) =>
+                assert_eq!("Ok(_)", &format!("Err({e})")),
+        }
+    }
+}
