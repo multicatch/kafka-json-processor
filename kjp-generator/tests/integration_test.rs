@@ -11,7 +11,7 @@ fn generate_and_build() {
         .init();
     let root = root_project_dir();
 
-    let input_template = root.join("template-examples/correct.yaml");
+    let input_template = root.join("template-examples/all_processors.yaml");
     let output_dir = root.join("test-output");
     let generator_dir = root.join("kjp-generator-generators");
 

@@ -79,8 +79,6 @@ use serde_json::Value;
 use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage};
 use kafka_json_processor_core::error::{ProcessingError, ErrorKind};
 use kafka_json_processor_core::{run_processor, Stream};
-use kafka_json_processor_core::formatters::json::pretty_json;
-use kafka_json_processor_core::formatters::xml::pretty_xml;
 use kafka_json_processor_core::processor::ObjectKey::{Key, Index};
 
 fn main() {
@@ -188,8 +186,6 @@ use serde_json::Value;
 use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage};
 use kafka_json_processor_core::error::{ProcessingError, ErrorKind};
 use kafka_json_processor_core::{run_processor, Stream};
-use kafka_json_processor_core::formatters::json::pretty_json;
-use kafka_json_processor_core::formatters::xml::pretty_xml;
 use kafka_json_processor_core::processor::ObjectKey::{Key, Index};
 
 fn main() {

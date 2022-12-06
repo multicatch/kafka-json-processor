@@ -92,7 +92,7 @@ mod test {
 
     #[test]
     fn should_read() {
-        let result = read_template("../template-examples/correct.yaml");
+        let result = read_template("../template-examples/basic.yaml");
 
         assert!(result.is_ok());
         assert_eq!(Template {

@@ -1,0 +1,21 @@
+name: "Example processor"
+streams:
+  - input_topic: in
+    output_topic: out
+
+    processors:
+      - generator: static_field
+        field: $.hello
+        value: world
+
+      - generator: copy_field
+        source_field: $.abc[1]
+        target_field: $.def
+
+      - generator: pretty_xml
+        source_field: $.xml_message
+        target_field: $.pretty_xml
+
+      - generator: pretty_json
+        source_field: $.json_message
+        target_field: $.pretty_json
