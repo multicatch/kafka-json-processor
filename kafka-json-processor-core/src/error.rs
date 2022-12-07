@@ -15,16 +15,32 @@ impl ProcessingError {
 
 #[derive(Debug)]
 pub enum ErrorKind {
+    /// Key is invalid for given object. 
+    /// This may mean that something is wrong with messages in the topic (or with the processor config).
     InvalidObjectTree {
         invalid_key: Vec<ObjectKey>,
         reason: String,
     },
+    
+    /// Object key is empty - this should not be allowed.
+    /// This means that an empty key was supplied - and there is no way to extract the field from JSON object.
     EmptyKey,
+    
+    /// Default wrapper for any error.
+    OtherError {
+        err: Box<dyn Error>
+    },
+
+    /// Low priority error - Field not found and thus, cannot use this message processor.
+    /// Example: requested to copy $.foo into $.bar, but no $.foo field was present.
     FieldNotFound {
         key: Vec<ObjectKey>,
     },
-    OtherError {
-        err: Box<dyn Error>
+    
+    /// Lowe priority error - processor was skipped for any arbitrary reason.
+    /// Example: some processor condition was not met.
+    ProcessorSkipped {
+        reason: String
     }
 }
 
@@ -39,7 +55,8 @@ impl Display for ErrorKind {
                 write!(f, "No key in object: [{:?}]", key),
             ErrorKind::OtherError { err } =>
                 write!(f, "Unexpected error while processing: {}", err),
-
+            ErrorKind::ProcessorSkipped { reason } => 
+                write!(f, "{}", reason),
         }
     }
 }

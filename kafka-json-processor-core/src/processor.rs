@@ -200,15 +200,23 @@ pub fn process_payload(id: String, payload: &[u8], processors: &[Processor]) -> 
     let source: Value = serde_json::from_slice(payload)?;
     let mut message: OutputMessage = OutputMessage::new();
 
-    for process in processors.iter() {
+    for (i, process) in processors.iter().enumerate() {
         if let Err(e) = process(&source, &mut message) {
-            if matches!(e.inner, ErrorKind::FieldNotFound { .. }) {
-                debug!("[{id}] {e}");
-            } else {
-                error!("[{id}] Cannot process message. Reason: {e}");
+            let e: ProcessingError = e;
+            match e.inner {
+                ErrorKind::FieldNotFound { .. } =>
+                    debug!("[{id}]#{i} {e}. Skipping processor."),
+
+                ErrorKind::ProcessorSkipped { .. } =>
+                    debug!("[{id}]#{i} {e}"),
+
+                _ =>
+                    error!("[{id}]#{i} Cannot process message. Reason: {e}"),
             }
         }
     }
+
+    trace!("[{id}] End of processing - serializing message.");
 
     Ok(SerializedOutputMessage {
         key: message.key.unwrap_or(id),

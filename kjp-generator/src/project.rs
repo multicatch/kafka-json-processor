@@ -66,6 +66,8 @@ log = "0.4.17"
 env_logger = "0.9.0"
 serde_json = "1.0.83"
 kafka_json_processor_core = %%CORE_VERSION%%
+lazy_static = "1.4.0"
+regex = "1.7.0"
 "##;
 
 const PROJECT_NAME: &str = "%%PROJECT_NAME%%";
@@ -80,6 +82,7 @@ use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage}
 use kafka_json_processor_core::error::{ProcessingError, ErrorKind};
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::processor::ObjectKey::{Key, Index};
+use lazy_static::lazy_static;
 
 fn main() {
     env_logger::builder()
@@ -187,6 +190,7 @@ use kafka_json_processor_core::processor::{ObjectKey, ObjectTree, OutputMessage}
 use kafka_json_processor_core::error::{ProcessingError, ErrorKind};
 use kafka_json_processor_core::{run_processor, Stream};
 use kafka_json_processor_core::processor::ObjectKey::{Key, Index};
+use lazy_static::lazy_static;
 
 fn main() {
     env_logger::builder()
@@ -274,6 +278,8 @@ log = "0.4.17"
 env_logger = "0.9.0"
 serde_json = "1.0.83"
 kafka_json_processor_core = "0.1.0"
+lazy_static = "1.4.0"
+regex = "1.7.0"
 "##, actual);
     }
 }

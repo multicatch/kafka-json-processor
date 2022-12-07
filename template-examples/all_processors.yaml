@@ -19,3 +19,9 @@ streams:
       - generator: pretty_json
         source_field: $.json_message
         target_field: $.pretty_json
+
+      - generator: copy_regex
+        source_field: $.message
+        target_field: $.output
+        pattern: 'extract:\[([a-zA-Z]+)\]'
+        group: 1

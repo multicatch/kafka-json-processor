@@ -1,0 +1,10 @@
+[Input]
+{
+    "message": "Lorem Ipsum dolor 123-123 sit [amet] extract:[this]"
+}
+
+[Expected]
+{
+    "hello": "world",
+    "output": "this"
+}

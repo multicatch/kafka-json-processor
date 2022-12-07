@@ -44,3 +44,21 @@ required_param_to_var() {
 
     export "$var_name=$param_val"
 }
+
+optional_param_to_var() {
+    local name=$1
+    local var_name
+    if [[ "$#" -eq 1 ]]; then
+      var_name="$name"
+    else
+      var_name="$2"
+    fi
+
+    local i="kjp_params_$name"
+    local param_val
+    param_val=$(printf '%s' "${!i}")
+
+    if [[ -n "$param_val" ]]; then
+      export "$var_name=$param_val"
+    fi
+}
