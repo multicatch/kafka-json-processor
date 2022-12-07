@@ -2,6 +2,11 @@
 name = "kafka_json_processor_core"
 version = "0.1.0"
 edition = "2021"
+authors = ["multicatch <cezaryre@gmail.com>"]
+license = "GNU GPLv3"
+homepage = "https://github.com/multicatch/kafka-json-processor"
+repository = "https://github.com/multicatch/kafka-json-processor"
+documentation = "https://multicatch.github.io/kafka-json-processor/kafka_json_processor_core/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
