@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["kafka_json_processor_core","kjp_generator","kjp_generator_plugin"];

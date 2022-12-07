@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["FIELD_KEY",""],["GENERATOR_KEY",""]],"enum":[["ProcessorGenerationError",""]],"fn":[["create_processor_generators","Creates a map of code generators from given path."],["generate_processors","Generates code for all processors in a stream."]],"struct":[["Processor",""]]};

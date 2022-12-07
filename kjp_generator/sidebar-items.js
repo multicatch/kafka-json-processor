@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["read_and_parse_and_generate","Reads template, parses it and generated project based on it."]],"mod":[["processors",""],["project",""]],"struct":[["Stream",""],["Template",""]]};

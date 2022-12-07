@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["ObjectKey",""]],"fn":[["process_payload",""]],"struct":[["OutputMessage",""],["SerializedOutputMessage",""]],"trait":[["ObjectTree",""]],"type":[["ProcessingResult",""],["Processor",""]]};

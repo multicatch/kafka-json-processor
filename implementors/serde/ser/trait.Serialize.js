@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"kjp_generator":[["impl <a class=\"trait\" href=\"https://docs.rs/serde/1.0.147/serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"kjp_generator/struct.Template.html\" title=\"struct kjp_generator::Template\">Template</a>"],["impl <a class=\"trait\" href=\"https://docs.rs/serde/1.0.147/serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"kjp_generator/struct.Stream.html\" title=\"struct kjp_generator::Stream\">Stream</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

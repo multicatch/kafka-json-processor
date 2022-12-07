@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["pretty_xml","Naive implementation of pretty XML. Not so accurate, but readable and fast."]]};
