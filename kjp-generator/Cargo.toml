@@ -1,5 +1,6 @@
 [package]
 name = "kjp_generator"
+description = "Custom Kafka JSON processor generator, part of kafka-json-processor project."
 version = "0.1.0"
 edition = "2021"
 authors = ["multicatch <cezaryre@gmail.com>"]

@@ -1,5 +1,6 @@
 [package]
 name = "kjp_generator_plugin"
+description = "The base for a custom code generator for kjp-generator, part of kafka-json-processor project."
 version = "0.1.0"
 edition = "2021"
 authors = ["multicatch <cezaryre@gmail.com>"]

@@ -86,7 +86,6 @@ use lazy_static::lazy_static;
 
 fn main() {
     env_logger::builder()
-        .filter_level(LevelFilter::Debug)
         .init();
 
     let mut streams = HashMap::new();
@@ -194,7 +193,6 @@ use lazy_static::lazy_static;
 
 fn main() {
     env_logger::builder()
-        .filter_level(LevelFilter::Debug)
         .init();
 
     let mut streams = HashMap::new();
