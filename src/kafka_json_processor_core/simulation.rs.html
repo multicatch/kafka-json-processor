@@ -189,13 +189,46 @@
 <span id="189">189</span>
 <span id="190">190</span>
 <span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::error::Error;
 <span class="kw">use </span>std::{fs, io};
 <span class="kw">use </span>std::io::ErrorKind;
 <span class="kw">use </span>std::path::Path;
 <span class="kw">use </span>std::time::Instant;
+<span class="kw">use </span>lazy_static::lazy_static;
 <span class="kw">use </span>log::{debug, error, info, warn};
+<span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>serde_json::Value;
 <span class="kw">use </span><span class="kw">crate</span>::processor::process_payload;
 <span class="kw">use </span><span class="kw">crate</span>::Stream;
@@ -228,7 +261,10 @@
         <span class="kw">let </span>entry = entry<span class="question-mark">?</span>;
         <span class="kw">let </span>file_path = entry.path();
 
-        <span class="kw">let </span>(input, expected) = read_data_from(<span class="kw-2">&amp;</span>file_path)<span class="question-mark">?</span>;
+        <span class="comment">// I should make this more extendable in the future
+        </span><span class="kw">let </span>(input, expected) = <span class="kw">match </span>read_data_from(<span class="kw-2">&amp;</span>file_path)<span class="question-mark">? </span>{
+            SimulationDefinition::V1(i, o) =&gt; (i, o)
+        };
 
         <span class="kw">let </span>file_name = file_path.file_name().unwrap().to_str().unwrap();
         <span class="kw">let </span>msg_id = <span class="macro">format!</span>(<span class="string">&quot;simulation_{}_{}&quot;</span>, source, file_name);
@@ -243,15 +279,37 @@
 <span class="kw">const </span>INPUT_HEADER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;[Input]&quot;</span>;
 <span class="kw">const </span>EXPECTED_HEADER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;[Expected]&quot;</span>;
 
-<span class="kw">fn </span>read_data_from&lt;P: AsRef&lt;Path&gt;&gt;(path: P) -&gt; <span class="prelude-ty">Result</span>&lt;(String, String), io::Error&gt; {
+<span class="kw">fn </span>read_data_from&lt;P: AsRef&lt;Path&gt;&gt;(path: P) -&gt; <span class="prelude-ty">Result</span>&lt;SimulationDefinition, io::Error&gt; {
     <span class="kw">let </span>file_input = fs::read_to_string(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
     <span class="kw">let </span><span class="kw-2">mut </span>lines = file_input.lines();
+
+    <span class="macro">lazy_static! </span>{
+        <span class="kw">static </span><span class="kw-2">ref </span>FILE_START_REGEX: Regex = Regex::new(<span class="string">&quot;# +kjp-sim:(.*)&quot;</span>).unwrap();
+    };
+
+    <span class="kw">let </span>file_ver: String = lines.next()
+        .and_then(|l| FILE_START_REGEX.captures(l))
+        .and_then(|c| c.get(<span class="number">1</span>))
+        .map(|m| m.as_str().to_string())
+        .ok_or_else(|| io::Error::new(
+            ErrorKind::Other,
+            <span class="macro">format!</span>(
+                <span class="string">&quot;File format error [{}]: Missing kjp-sim header.&quot;</span>, path.as_ref().display()
+            ),
+        ))<span class="question-mark">?</span>;
+
+    <span class="kw">if </span>file_ver.trim() != <span class="string">&quot;1.0&quot; </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(io::Error::new(
+            ErrorKind::Other,
+            <span class="macro">format!</span>(<span class="string">&quot;File format error [{}]: Incorrect file version: {}.&quot;</span>, path.as_ref().display(), file_ver),
+        ));
+    }
 
     <span class="kw">if </span>!<span class="macro">matches!</span>(<span class="kw-2">&amp;</span>lines.next(), <span class="prelude-val">Some</span>(INPUT_HEADER)) {
         <span class="kw">return </span><span class="prelude-val">Err</span>(io::Error::new(
             ErrorKind::Other,
             <span class="macro">format!</span>(<span class="string">&quot;File format error [{}]: Missing [{INPUT_HEADER}] part.&quot;</span>, path.as_ref().display()
-        )));
+            )));
     }
 
     <span class="kw">let </span>input = lines.clone()
@@ -272,10 +330,14 @@
         <span class="kw">return </span><span class="prelude-val">Err</span>(io::Error::new(
             ErrorKind::Other,
             <span class="macro">format!</span>(<span class="string">&quot;File format error [{}]: Missing [{INPUT_HEADER}] or [{EXPECTED_HEADER}] part.&quot;</span>, path.as_ref().display()
-        )));
+            )));
     }
 
-    <span class="prelude-val">Ok</span>((input, output))
+    <span class="prelude-val">Ok</span>(SimulationDefinition::V1(input, output))
+}
+
+<span class="kw">enum </span>SimulationDefinition {
+    V1(String, String)
 }
 
 <span class="kw">fn </span>run_single_simulation(msg_id: String, stream: <span class="kw-2">&amp;</span>Stream, input: String, expected_output: String) {
@@ -313,7 +375,7 @@
     <span class="kw">use </span><span class="kw">crate</span>::formatters::json::pretty_json;
     <span class="kw">use </span><span class="kw">crate</span>::formatters::xml::pretty_xml;
     <span class="kw">use </span><span class="kw">crate</span>::processor::{ObjectKey, ObjectTree, OutputMessage};
-    <span class="kw">use </span><span class="kw">crate</span>::simulation::{read_data_from, simulate_streams_from_default_folder};
+    <span class="kw">use </span><span class="kw">crate</span>::simulation::{read_data_from, simulate_streams_from_default_folder, SimulationDefinition};
     <span class="kw">use </span><span class="kw">crate</span>::Stream;
 
     <span class="attribute">#[test]
@@ -341,8 +403,7 @@
     <span class="kw">fn </span>format_xml_field(input: <span class="kw-2">&amp;</span>Value, message: <span class="kw-2">&amp;mut </span>OutputMessage) -&gt; <span class="prelude-ty">Result</span>&lt;(), ProcessingError&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(xml) = input.get_val(<span class="kw-2">&amp;</span>[ObjectKey::Key(<span class="string">&quot;xml&quot;</span>.to_string())])<span class="question-mark">?
             </span>.as_str()
-            .map(|v| v.to_string())  {
-
+            .map(|v| v.to_string()) {
             message.insert_val(<span class="kw-2">&amp;</span>[ObjectKey::Key(<span class="string">&quot;pretty_xml&quot;</span>.to_string())], Value::String(pretty_xml(xml)))<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
@@ -351,8 +412,7 @@
     <span class="kw">fn </span>format_json_field(input: <span class="kw-2">&amp;</span>Value, message: <span class="kw-2">&amp;mut </span>OutputMessage) -&gt; <span class="prelude-ty">Result</span>&lt;(), ProcessingError&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(json) = input.get_val(<span class="kw-2">&amp;</span>[ObjectKey::Key(<span class="string">&quot;json&quot;</span>.to_string())])<span class="question-mark">?
             </span>.as_str()
-            .map(|v| v.to_string())  {
-
+            .map(|v| v.to_string()) {
             message.insert_val(<span class="kw-2">&amp;</span>[ObjectKey::Key(<span class="string">&quot;pretty_json&quot;</span>.to_string())], Value::String(pretty_json(json)))<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
@@ -362,7 +422,9 @@
     </span><span class="kw">fn </span>should_read_data() {
         <span class="kw">let </span>result = read_data_from(<span class="string">&quot;../simulations/example/basic.sample&quot;</span>);
         <span class="macro">assert!</span>(result.is_ok());
-        <span class="kw">let </span>(input, expected) = result.unwrap();
+        <span class="kw">let </span>(input, expected) = <span class="kw">match </span>result.unwrap() {
+            SimulationDefinition::V1(i, o) =&gt; (i, o)
+        };
 
         <span class="macro">assert_eq!</span>(input, <span class="string">r#&quot;{
     &quot;xml&quot;: &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;UTF-8\&quot;?&gt;&lt;breakfast_menu&gt;&lt;!-- comment --&gt;&lt;!-- comment after comment --&gt;&lt;food&gt;  &lt;name&gt;Belgian Waffles&lt;/name&gt;&lt;!-- comment 2 --&gt;    &lt;price&gt;$5.95&lt;/price&gt;&lt;description&gt;Two of our famous Belgian Waffles with plenty of real maple syrup&lt;/description&gt;&lt;calories&gt;650&lt;/calories&gt;&lt;/food&gt;&lt;food&gt;&lt;name&gt;Strawberry Belgian Waffles&lt;/name&gt;&lt;price&gt;$7.95&lt;/price&gt;&lt;description&gt;Light Belgian waffles covered with strawberries and whipped cream&lt;/description&gt;&lt;calories&gt;900&lt;/calories&gt;&lt;/food&gt;&lt;food&gt;&lt;name&gt;Berry-Berry Belgian Waffles&lt;/name&gt;&lt;price&gt;$8.95&lt;/price&gt;&lt;description&gt;Light Belgian waffles covered with an assortment of fresh berries and whipped cream&lt;/description&gt;&lt;calories&gt;900&lt;/calories&gt;&lt;/food&gt;&lt;food&gt;&lt;name&gt;French Toast&lt;/name&gt;&lt;price&gt;$4.50&lt;/price&gt;&lt;description&gt;Thick slices made from our homemade sourdough bread&lt;/description&gt;&lt;calories&gt;600&lt;/calories&gt;&lt;/food&gt;&lt;food&gt;&lt;name&gt;Homestyle Breakfast&lt;/name&gt;&lt;price&gt;$6.95&lt;/price&gt;&lt;description&gt;Two eggs, bacon or sausage, toast, and our ever-popular hash browns&lt;/description&gt;&lt;calories&gt;950&lt;/calories&gt;&lt;/food&gt;&lt;/breakfast_menu&gt;&quot;,
