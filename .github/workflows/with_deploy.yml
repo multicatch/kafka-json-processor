@@ -33,3 +33,8 @@ jobs:
         with:
           branch: gh-pages
           folder: 'target/doc'
+
+      - name: Publish to crates.io
+        uses: katyo/publish-crates@v1
+        with:
+          registry-token: ${{ secrets.CRATES_TOKEN }}
