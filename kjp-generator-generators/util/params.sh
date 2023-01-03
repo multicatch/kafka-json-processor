@@ -38,7 +38,7 @@ required_param_to_var() {
 
     if [[ -z "$param_val" ]]; then
       echo "ERR"
-      printf 'Generator required config that was missing in config: %s\n' "$name"
+      printf 'Generator required property that was missing in config: %s\n' "$name"
       exit 1
     fi
 
