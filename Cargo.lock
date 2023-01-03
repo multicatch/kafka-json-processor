@@ -327,7 +327,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
- "kjp_generator_plugin",
+ "kjp_generator_plugin 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log",
  "regex",
  "serde",
@@ -337,6 +337,15 @@ dependencies = [
 [[package]]
 name = "kjp_generator_plugin"
 version = "0.1.0"
+dependencies = [
+ "regex",
+]
+
+[[package]]
+name = "kjp_generator_plugin"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2663ad8012c8806c6e6e69abecc24ddb78d612952d9b4d7f95ed412d0bf5bfa"
 dependencies = [
  "regex",
 ]
