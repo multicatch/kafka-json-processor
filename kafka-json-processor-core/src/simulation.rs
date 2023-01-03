@@ -4,7 +4,9 @@ use std::{fs, io};
 use std::io::ErrorKind;
 use std::path::Path;
 use std::time::Instant;
+use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
+use regex::Regex;
 use serde_json::Value;
 use crate::processor::process_payload;
 use crate::Stream;
@@ -37,7 +39,10 @@ fn find_samples_and_simulate<P: AsRef<Path>>(simulation_path: P, stream: &Stream
         let entry = entry?;
         let file_path = entry.path();
 
-        let (input, expected) = read_data_from(&file_path)?;
+        // I should make this more extendable in the future
+        let (input, expected) = match read_data_from(&file_path)? {
+            SimulationDefinition::V1(i, o) => (i, o)
+        };
 
         let file_name = file_path.file_name().unwrap().to_str().unwrap();
         let msg_id = format!("simulation_{}_{}", source, file_name);
@@ -52,15 +57,37 @@ fn find_samples_and_simulate<P: AsRef<Path>>(simulation_path: P, stream: &Stream
 const INPUT_HEADER: &str = "[Input]";
 const EXPECTED_HEADER: &str = "[Expected]";
 
-fn read_data_from<P: AsRef<Path>>(path: P) -> Result<(String, String), io::Error> {
+fn read_data_from<P: AsRef<Path>>(path: P) -> Result<SimulationDefinition, io::Error> {
     let file_input = fs::read_to_string(&path)?;
     let mut lines = file_input.lines();
+
+    lazy_static! {
+        static ref FILE_START_REGEX: Regex = Regex::new("# +kjp-sim:(.*)").unwrap();
+    };
+
+    let file_ver: String = lines.next()
+        .and_then(|l| FILE_START_REGEX.captures(l))
+        .and_then(|c| c.get(1))
+        .map(|m| m.as_str().to_string())
+        .ok_or_else(|| io::Error::new(
+            ErrorKind::Other,
+            format!(
+                "File format error [{}]: Missing kjp-sim header.", path.as_ref().display()
+            ),
+        ))?;
+
+    if file_ver.trim() != "1.0" {
+        return Err(io::Error::new(
+            ErrorKind::Other,
+            format!("File format error [{}]: Incorrect file version: {}.", path.as_ref().display(), file_ver),
+        ));
+    }
 
     if !matches!(&lines.next(), Some(INPUT_HEADER)) {
         return Err(io::Error::new(
             ErrorKind::Other,
             format!("File format error [{}]: Missing [{INPUT_HEADER}] part.", path.as_ref().display()
-        )));
+            )));
     }
 
     let input = lines.clone()
@@ -81,10 +108,14 @@ fn read_data_from<P: AsRef<Path>>(path: P) -> Result<(String, String), io::Error
         return Err(io::Error::new(
             ErrorKind::Other,
             format!("File format error [{}]: Missing [{INPUT_HEADER}] or [{EXPECTED_HEADER}] part.", path.as_ref().display()
-        )));
+            )));
     }
 
-    Ok((input, output))
+    Ok(SimulationDefinition::V1(input, output))
+}
+
+enum SimulationDefinition {
+    V1(String, String)
 }
 
 fn run_single_simulation(msg_id: String, stream: &Stream, input: String, expected_output: String) {
@@ -122,7 +153,7 @@ mod tests {
     use crate::formatters::json::pretty_json;
     use crate::formatters::xml::pretty_xml;
     use crate::processor::{ObjectKey, ObjectTree, OutputMessage};
-    use crate::simulation::{read_data_from, simulate_streams_from_default_folder};
+    use crate::simulation::{read_data_from, simulate_streams_from_default_folder, SimulationDefinition};
     use crate::Stream;
 
     #[test]
@@ -150,8 +181,7 @@ mod tests {
     fn format_xml_field(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
         if let Some(xml) = input.get_val(&[ObjectKey::Key("xml".to_string())])?
             .as_str()
-            .map(|v| v.to_string())  {
-
+            .map(|v| v.to_string()) {
             message.insert_val(&[ObjectKey::Key("pretty_xml".to_string())], Value::String(pretty_xml(xml)))?;
         }
         Ok(())
@@ -160,8 +190,7 @@ mod tests {
     fn format_json_field(input: &Value, message: &mut OutputMessage) -> Result<(), ProcessingError> {
         if let Some(json) = input.get_val(&[ObjectKey::Key("json".to_string())])?
             .as_str()
-            .map(|v| v.to_string())  {
-
+            .map(|v| v.to_string()) {
             message.insert_val(&[ObjectKey::Key("pretty_json".to_string())], Value::String(pretty_json(json)))?;
         }
         Ok(())
@@ -171,7 +200,9 @@ mod tests {
     fn should_read_data() {
         let result = read_data_from("../simulations/example/basic.sample");
         assert!(result.is_ok());
-        let (input, expected) = result.unwrap();
+        let (input, expected) = match result.unwrap() {
+            SimulationDefinition::V1(i, o) => (i, o)
+        };
 
         assert_eq!(input, r#"{
     "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><breakfast_menu><!-- comment --><!-- comment after comment --><food>  <name>Belgian Waffles</name><!-- comment 2 -->    <price>$5.95</price><description>Two of our famous Belgian Waffles with plenty of real maple syrup</description><calories>650</calories></food><food><name>Strawberry Belgian Waffles</name><price>$7.95</price><description>Light Belgian waffles covered with strawberries and whipped cream</description><calories>900</calories></food><food><name>Berry-Berry Belgian Waffles</name><price>$8.95</price><description>Light Belgian waffles covered with an assortment of fresh berries and whipped cream</description><calories>900</calories></food><food><name>French Toast</name><price>$4.50</price><description>Thick slices made from our homemade sourdough bread</description><calories>600</calories></food><food><name>Homestyle Breakfast</name><price>$6.95</price><description>Two eggs, bacon or sausage, toast, and our ever-popular hash browns</description><calories>950</calories></food></breakfast_menu>",
