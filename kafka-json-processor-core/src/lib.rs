@@ -105,7 +105,11 @@ async fn run_processing_tasks(
     let consumer: StreamConsumer = exec_or_retry_in_10s!(config.consumer_config.create());
     let producer: BaseProducer = exec_or_retry_in_10s!(config.producer_config.create());
 
-    let offset_holder = MessageOffsetHolder::with_offsets_in(config.internal_config.journal_path)?;
+    let offset_holder = MessageOffsetHolder::new(
+        config.internal_config.journal_path,
+        config.internal_config.journal_enabled,
+    )?;
+
     let offset_holder = Arc::new(offset_holder);
     let producer_offset_holder = offset_holder.clone();
 
@@ -132,7 +136,7 @@ async fn run_processing_tasks(
 fn show_streams_and_subscribe(consumer: &StreamConsumer, streams: &HashMap<String, Stream>, offsets: HashMap<OffsetKey, i64>) -> Result<(), Box<dyn Error>> {
     streams.values()
         .for_each(|stream| {
-           info!("Stream [{}] --> [{}]: {} processor(s).", stream.source_topic, stream.target_topic, stream.processors.len());
+            info!("Stream [{}] --> [{}]: {} processor(s).", stream.source_topic, stream.target_topic, stream.processors.len());
         });
 
     let topics: Vec<&str> = streams.keys()

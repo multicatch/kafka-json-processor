@@ -9,6 +9,7 @@ use log::{debug, error};
 use crate::MessageOffset;
 
 pub struct MessageOffsetHolder {
+    journal_enabled: bool,
     journal_dir: String,
     inner: Arc<Mutex<HashMap<OffsetKey, Offset>>>
 }
@@ -19,24 +20,42 @@ type Offset = i64;
 pub struct OffsetKey(pub String, pub i32);
 
 impl MessageOffsetHolder {
-    pub fn with_offsets_in(journal_dir: String) -> Result<MessageOffsetHolder, Box<dyn Error>> {
-        let offsets = read_offsets_from(&journal_dir)?;
+    pub fn new(journal_dir: String, enabled: bool) -> Result<MessageOffsetHolder, Box<dyn Error>> {
+        let offsets = if enabled {
+            read_offsets_from(&journal_dir)?
+        } else {
+            HashMap::new()
+        };
+
         Ok(MessageOffsetHolder {
             journal_dir,
+            journal_enabled: enabled,
             inner: Arc::new(Mutex::new(offsets)),
         })
     }
-    
+
     pub fn offsets(&self) -> HashMap<OffsetKey, Offset> {
-        self.lock().unwrap().clone()
+        if self.journal_enabled {
+            self.lock().unwrap().clone()
+        } else {
+            HashMap::new()
+        }
     }
 
     pub fn update(&self, offset: MessageOffset) {
+        if !self.journal_enabled {
+            return;
+        }
+
         let mut guard = self.inner.lock().unwrap();
         (*guard).insert(OffsetKey(offset.topic, offset.partition), offset.offset);
     }
 
     pub fn flush(&self) {
+        if !self.journal_enabled {
+            return;
+        }
+
         let offsets = self.offsets();
         save_offsets_in(offsets, &self.journal_dir);
     }
