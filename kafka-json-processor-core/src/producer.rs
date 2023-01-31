@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 use crossbeam_channel::Receiver;
 use log::{debug, error, info, trace, warn};
@@ -6,8 +7,9 @@ use rdkafka::error::RDKafkaErrorCode::{InvalidTopic, QueueFull, UnknownTopic, Un
 use rdkafka::producer::{Producer, BaseProducer, BaseRecord};
 use rdkafka::util::Timeout;
 use crate::{PendingMessage, SerializedOutputMessage};
+use crate::journal::MessageOffsetHolder;
 
-pub async fn producer_loop(producer: BaseProducer, rx: Receiver<PendingMessage>, queue_size: usize, queue_slowdown_time: Duration) {
+pub async fn producer_loop(producer: BaseProducer, rx: Receiver<PendingMessage>, queue_size: usize, queue_slowdown_time: Duration, offset_holder: Arc<MessageOffsetHolder>) {
     while let Ok(pending) = rx.recv() {
         match pending {
             PendingMessage::Received => {
@@ -16,7 +18,7 @@ pub async fn producer_loop(producer: BaseProducer, rx: Receiver<PendingMessage>,
                 // Sender<PendingMessage> uses a bounded channel, so it will block if it's full (that is,
                 // when Receiver<PendingMessage> did not read objects from queue).
             }
-            PendingMessage::Processed { id, topic, message } => {
+            PendingMessage::Processed { id, topic, message, offset } => {
                 debug!("[{id}] Producing message [{}]", message.key);
                 trace!("[{id}] Produced: {}", message.message);
 
@@ -24,7 +26,10 @@ pub async fn producer_loop(producer: BaseProducer, rx: Receiver<PendingMessage>,
                     // Message not sent, so
                     continue;
                 }
-
+                
+                // offset needed in case of recovery from crash
+                offset_holder.update(offset);
+                
                 while producer.in_flight_count() as f64 >= 0.95f64 * queue_size as f64 {
                     warn!("Producer queue is almost full ({}/{}). Halting production for {}s.", producer.in_flight_count(), queue_size, queue_slowdown_time.as_secs());
                     // This flush will block current thread for queue_slowdown_time or less.

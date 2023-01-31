@@ -4,7 +4,7 @@ use log::{debug, error, trace, warn};
 use rdkafka::consumer::StreamConsumer;
 use rdkafka::Message;
 use tokio::runtime::Runtime;
-use crate::{PendingMessage, Stream};
+use crate::{MessageOffset, PendingMessage, Stream};
 use crate::processor::{process_payload, ProcessingResult};
 
 pub async fn consumer_loop(consumer: StreamConsumer, tx: Sender<PendingMessage>, runtime: &Runtime, streams: HashMap<String, Stream>)
@@ -22,12 +22,17 @@ pub async fn consumer_loop(consumer: StreamConsumer, tx: Sender<PendingMessage>,
                                   message.offset(),
                                   message.timestamp().to_millis().unwrap_or(0)
                 );
+                let message_offset = MessageOffset {
+                    topic: message.topic().to_string(),
+                    partition: message.partition(),
+                    offset: message.offset(),
+                };
 
                 debug!("[{key}] Received message.");
                 trace!("[{key}] Message: {}", String::from_utf8_lossy(&payload));
 
                 if let Some(stream) = streams.get(message.topic()) {
-                    spawn_task(runtime, tx.clone(), key, payload, stream.clone());
+                    spawn_task(runtime, tx.clone(), key, payload, stream.clone(), message_offset);
                 } else {
                     warn!("[{key}] Topic {} is unsupported! Ignoring message.", message.topic());
                 }
@@ -39,7 +44,7 @@ pub async fn consumer_loop(consumer: StreamConsumer, tx: Sender<PendingMessage>,
     }
 }
 
-fn spawn_task(runtime: &Runtime, tx: Sender<PendingMessage>, key: String, payload: Vec<u8>, stream: Stream) {
+fn spawn_task(runtime: &Runtime, tx: Sender<PendingMessage>, key: String, payload: Vec<u8>, stream: Stream, message_offset: MessageOffset) {
     runtime.spawn(async move {
         match process_payload(key.clone(), &payload, stream.processors) {
             Ok(processed) => {
@@ -47,6 +52,7 @@ fn spawn_task(runtime: &Runtime, tx: Sender<PendingMessage>, key: String, payloa
                 tx.send(PendingMessage::Processed {
                     id: key,
                     topic: stream.target_topic.clone(),
+                    offset: message_offset,
                     message: processed,
                 }).unwrap();
             }

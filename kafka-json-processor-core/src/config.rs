@@ -18,6 +18,8 @@ pub struct InternalConfig {
     pub channel_capacity: usize,
     pub queue_slowdown_ms: usize,
     pub queue_size: usize,
+    pub journal_enabled: bool,
+    pub journal_path: String,
 }
 
 impl Default for InternalConfig {
@@ -27,6 +29,8 @@ impl Default for InternalConfig {
             channel_capacity: 50,
             queue_slowdown_ms: 10_000, // 10 s
             queue_size: 100_000,
+            journal_enabled: true,
+            journal_path: "./kjp_journal".to_string(),
         }
     }
 }
@@ -101,6 +105,12 @@ fn set_internal(key: &str, value: &str, config: &mut InternalConfig) -> Result<(
 
         "processor.queue.slowdown.ms" =>
             config.queue_slowdown_ms = value.parse()?,
+
+        "processor.journal.path" =>
+            config.journal_path = value.parse()?,
+        
+        "processor.journal.enabled" =>
+            config.journal_enabled = value.parse()?,
 
         _ => {
             warn!("Unknown config option: {key}={value}. Ignoring.")
