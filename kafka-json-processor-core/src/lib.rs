@@ -188,6 +188,7 @@ async fn journal_flush_loop(offset_holder: Arc<MessageOffsetHolder>) {
     loop {
         journal_interval.tick().await;
 
+        debug!("Timeout, flushing journal");
         offset_holder.flush();
     }
 }
