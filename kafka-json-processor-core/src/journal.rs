@@ -26,6 +26,10 @@ impl MessageOffsetHolder {
             inner: Arc::new(Mutex::new(offsets)),
         })
     }
+    
+    pub fn offsets(&self) -> HashMap<OffsetKey, Offset> {
+        self.lock().unwrap().clone()
+    }
 
     pub fn update(&self, offset: MessageOffset) {
         let mut guard = self.inner.lock().unwrap();
@@ -33,11 +37,7 @@ impl MessageOffsetHolder {
     }
 
     pub fn flush(&self) {
-        let offsets = {
-            let guard = self.inner.lock().unwrap();
-            guard.clone()
-        };
-
+        let offsets = self.offsets();
         save_offsets_in(offsets, &self.journal_dir);
     }
 }
