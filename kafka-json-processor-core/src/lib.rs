@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
 use std::time::Duration;
 use crossbeam_channel::bounded;
 use log::{info, warn, error, debug};
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::BaseProducer;
 use tokio::runtime::{Builder, Runtime};
+use tokio::time::interval;
 use crate::config::Config;
 use crate::consumer::consumer_loop;
+use crate::journal::MessageOffsetHolder;
 use crate::processor::{Processor, SerializedOutputMessage};
 use crate::producer::producer_loop;
 
@@ -18,6 +21,7 @@ pub mod processor;
 pub mod formatters;
 pub mod simulation;
 pub mod error;
+pub mod journal;
 
 #[derive(Clone)]
 pub struct Stream {
@@ -31,8 +35,15 @@ pub enum PendingMessage {
     Processed {
         id: String,
         topic: String,
+        offset: MessageOffset,
         message: SerializedOutputMessage,
     },
+}
+
+pub struct MessageOffset {
+    topic: String,
+    partition: i32,
+    offset: i64,
 }
 
 pub fn run_processor(streams: HashMap<String, Stream>) {
@@ -93,6 +104,10 @@ async fn run_processing_tasks(
     let consumer: StreamConsumer = exec_or_retry_in_10s!(config.consumer_config.create());
     let producer: BaseProducer = exec_or_retry_in_10s!(config.producer_config.create());
 
+    let offset_holder = MessageOffsetHolder::with_offsets_in(config.internal_config.journal_path)?;
+    let offset_holder = Arc::new(offset_holder);
+    let producer_offset_holder = offset_holder.clone();
+
     show_streams_and_subscribe(&consumer, &streams)?;
 
     let (tx, rx) = bounded(config.internal_config.channel_capacity);
@@ -102,7 +117,12 @@ async fn run_processing_tasks(
             rx,
             config.internal_config.queue_size,
             Duration::from_millis(config.internal_config.queue_slowdown_ms as u64),
+            producer_offset_holder,
         ).await;
+    });
+
+    runtime.spawn(async move {
+        journal_flush_loop(offset_holder).await;
     });
 
     consumer_loop(consumer, tx, runtime, streams).await
@@ -121,4 +141,19 @@ fn show_streams_and_subscribe(consumer: &StreamConsumer, streams: &HashMap<Strin
     consumer.subscribe(&topics)?;
 
     Ok(())
+}
+
+/// Runs a loop that flushes offsets every 30 seconds.
+///
+/// Flushing saves current offsets to a journal on disk.
+/// It is used to subscribe to topics from given offsets in case of crash or client id change
+/// (when we cannot be sure where we finished during last run).
+async fn journal_flush_loop(offset_holder: Arc<MessageOffsetHolder>) {
+    let mut journal_interval = interval(Duration::from_secs(30));
+
+    loop {
+        journal_interval.tick().await;
+
+        offset_holder.flush();
+    }
 }
