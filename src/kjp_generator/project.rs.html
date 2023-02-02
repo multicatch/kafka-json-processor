@@ -295,7 +295,7 @@
         )
         .replace(CORE_VERSION, <span class="kw-2">&amp;</span>core_path
             .map(|path| <span class="macro">format!</span>(<span class="string">&quot;{{ path = \&quot;{}\&quot; }}&quot;</span>, path))
-            .unwrap_or_else(|| <span class="string">&quot;\&quot;0.1.0\&quot;&quot;</span>.to_string())
+            .unwrap_or_else(|| <span class="string">&quot;\&quot;0.1.1\&quot;&quot;</span>.to_string())
         )
 }
 
@@ -558,7 +558,7 @@ edition = &quot;2021&quot;
 log = &quot;0.4.17&quot;
 env_logger = &quot;0.9.0&quot;
 serde_json = &quot;1.0.83&quot;
-kafka_json_processor_core = &quot;0.1.0&quot;
+kafka_json_processor_core = &quot;0.1.1&quot;
 lazy_static = &quot;1.4.0&quot;
 regex = &quot;1.7.0&quot;
 &quot;##</span>, actual);

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["PendingMessage",""]],"fn":[["run_processor",""]],"mod":[["config",""],["error",""],["formatters",""],["processor",""],["simulation",""]],"struct":[["Stream",""]]};
+window.SIDEBAR_ITEMS = {"enum":[["PendingMessage",""]],"fn":[["run_processor",""]],"mod":[["config",""],["error",""],["formatters",""],["journal",""],["processor",""],["simulation",""]],"struct":[["MessageOffset",""],["Stream",""]]};

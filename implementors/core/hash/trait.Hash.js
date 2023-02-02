@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"kafka_json_processor_core":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.65.0/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"struct\" href=\"kafka_json_processor_core/journal/struct.OffsetKey.html\" title=\"struct kafka_json_processor_core::journal::OffsetKey\">OffsetKey</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

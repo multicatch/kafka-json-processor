@@ -105,7 +105,13 @@
 <span id="105">105</span>
 <span id="106">106</span>
 <span id="107">107</span>
-</pre><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+</pre><pre class="rust"><code><span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::time::Duration;
 <span class="kw">use </span>crossbeam_channel::Receiver;
 <span class="kw">use </span>log::{debug, error, info, trace, warn};
 <span class="kw">use </span>rdkafka::error::KafkaError;
@@ -113,8 +119,9 @@
 <span class="kw">use </span>rdkafka::producer::{Producer, BaseProducer, BaseRecord};
 <span class="kw">use </span>rdkafka::util::Timeout;
 <span class="kw">use crate</span>::{PendingMessage, SerializedOutputMessage};
+<span class="kw">use </span><span class="kw">crate</span>::journal::MessageOffsetHolder;
 
-<span class="kw">pub async fn </span>producer_loop(producer: BaseProducer, rx: Receiver&lt;PendingMessage&gt;, queue_size: usize, queue_slowdown_time: Duration) {
+<span class="kw">pub async fn </span>producer_loop(producer: BaseProducer, rx: Receiver&lt;PendingMessage&gt;, queue_size: usize, queue_slowdown_time: Duration, offset_holder: Arc&lt;MessageOffsetHolder&gt;) {
     <span class="kw">while let </span><span class="prelude-val">Ok</span>(pending) = rx.recv() {
         <span class="kw">match </span>pending {
             PendingMessage::Received =&gt; {
@@ -123,7 +130,7 @@
                 // Sender&lt;PendingMessage&gt; uses a bounded channel, so it will block if it&#39;s full (that is,
                 // when Receiver&lt;PendingMessage&gt; did not read objects from queue).
             </span>}
-            PendingMessage::Processed { id, topic, message } =&gt; {
+            PendingMessage::Processed { id, topic, message, offset } =&gt; {
                 <span class="macro">debug!</span>(<span class="string">&quot;[{id}] Producing message [{}]&quot;</span>, message.key);
                 <span class="macro">trace!</span>(<span class="string">&quot;[{id}] Produced: {}&quot;</span>, message.message);
 
@@ -131,7 +138,10 @@
                     <span class="comment">// Message not sent, so
                     </span><span class="kw">continue</span>;
                 }
-
+                
+                <span class="comment">// offset needed in case of recovery from crash
+                </span>offset_holder.update(offset);
+                
                 <span class="kw">while </span>producer.in_flight_count() <span class="kw">as </span>f64 &gt;= <span class="number">0.95f64 </span>* queue_size <span class="kw">as </span>f64 {
                     <span class="macro">warn!</span>(<span class="string">&quot;Producer queue is almost full ({}/{}). Halting production for {}s.&quot;</span>, producer.in_flight_count(), queue_size, queue_slowdown_time.as_secs());
                     <span class="comment">// This flush will block current thread for queue_slowdown_time or less.

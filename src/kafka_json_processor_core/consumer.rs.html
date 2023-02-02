@@ -56,13 +56,19 @@
 <span id="56">56</span>
 <span id="57">57</span>
 <span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>crossbeam_channel::Sender;
 <span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>rdkafka::consumer::StreamConsumer;
 <span class="kw">use </span>rdkafka::Message;
 <span class="kw">use </span>tokio::runtime::Runtime;
-<span class="kw">use crate</span>::{PendingMessage, Stream};
+<span class="kw">use crate</span>::{MessageOffset, PendingMessage, Stream};
 <span class="kw">use </span><span class="kw">crate</span>::processor::{process_payload, ProcessingResult};
 
 <span class="kw">pub async fn </span>consumer_loop(consumer: StreamConsumer, tx: Sender&lt;PendingMessage&gt;, runtime: <span class="kw-2">&amp;</span>Runtime, streams: HashMap&lt;String, Stream&gt;)
@@ -80,12 +86,17 @@
                                   message.offset(),
                                   message.timestamp().to_millis().unwrap_or(<span class="number">0</span>)
                 );
+                <span class="kw">let </span>message_offset = MessageOffset {
+                    topic: message.topic().to_string(),
+                    partition: message.partition(),
+                    offset: message.offset(),
+                };
 
                 <span class="macro">debug!</span>(<span class="string">&quot;[{key}] Received message.&quot;</span>);
                 <span class="macro">trace!</span>(<span class="string">&quot;[{key}] Message: {}&quot;</span>, String::from_utf8_lossy(<span class="kw-2">&amp;</span>payload));
 
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(stream) = streams.get(message.topic()) {
-                    spawn_task(runtime, tx.clone(), key, payload, stream.clone());
+                    spawn_task(runtime, tx.clone(), key, payload, stream.clone(), message_offset);
                 } <span class="kw">else </span>{
                     <span class="macro">warn!</span>(<span class="string">&quot;[{key}] Topic {} is unsupported! Ignoring message.&quot;</span>, message.topic());
                 }
@@ -97,7 +108,7 @@
     }
 }
 
-<span class="kw">fn </span>spawn_task(runtime: <span class="kw-2">&amp;</span>Runtime, tx: Sender&lt;PendingMessage&gt;, key: String, payload: Vec&lt;u8&gt;, stream: Stream) {
+<span class="kw">fn </span>spawn_task(runtime: <span class="kw-2">&amp;</span>Runtime, tx: Sender&lt;PendingMessage&gt;, key: String, payload: Vec&lt;u8&gt;, stream: Stream, message_offset: MessageOffset) {
     runtime.spawn(<span class="kw">async move </span>{
         <span class="kw">match </span>process_payload(key.clone(), <span class="kw-2">&amp;</span>payload, stream.processors) {
             <span class="prelude-val">Ok</span>(processed) =&gt; {
@@ -105,6 +116,7 @@
                 tx.send(PendingMessage::Processed {
                     id: key,
                     topic: stream.target_topic.clone(),
+                    offset: message_offset,
                     message: processed,
                 }).unwrap();
             }
