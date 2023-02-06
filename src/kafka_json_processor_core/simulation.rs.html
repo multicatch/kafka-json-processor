@@ -267,7 +267,7 @@
         };
 
         <span class="kw">let </span>file_name = file_path.file_name().unwrap().to_str().unwrap();
-        <span class="kw">let </span>msg_id = <span class="macro">format!</span>(<span class="string">&quot;simulation_{}_{}&quot;</span>, source, file_name);
+        <span class="kw">let </span>msg_id = <span class="macro">format!</span>(<span class="string">&quot;simulation_{source}_{file_name}&quot;</span>);
 
         <span class="macro">info!</span>(<span class="string">&quot;====== [{}#{}: {}] ======&quot;</span>, source, i, file_name);
         run_single_simulation(msg_id, stream, input, expected);

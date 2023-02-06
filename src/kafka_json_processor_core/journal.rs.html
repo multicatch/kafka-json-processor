@@ -269,7 +269,7 @@
     <span class="macro">debug!</span>(<span class="string">&quot;Saving offset [Topic: {}] [Partition: {}] [Offset: {}] to {:?}&quot;</span>, <span class="kw-2">&amp;</span>offset_key.<span class="number">0</span>, <span class="kw-2">&amp;</span>offset_key.<span class="number">1</span>, offset, <span class="kw-2">&amp;</span>file_path);
 
     <span class="comment">// save offset to file with name &quot;$topic.$partition&quot; (eg. sampletopic.1)
-    </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = fs::write(<span class="kw-2">&amp;</span>file_path, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, offset)) {
+    </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = fs::write(<span class="kw-2">&amp;</span>file_path, <span class="macro">format!</span>(<span class="string">&quot;{offset}&quot;</span>)) {
         <span class="macro">error!</span>(<span class="string">&quot;Failed to write journal to file {file_path:?}. Topic: [{}], Partition: [{}], Offset: [{}]. Reason: {e}&quot;</span>, offset_key.<span class="number">0</span>, offset_key.<span class="number">1</span>, offset);
     }
 }

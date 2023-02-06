@@ -280,7 +280,7 @@
                        function_name, field_name, description.clone().unwrap_or_else(|| <span class="string">&quot;N/A&quot;</span>.to_string())
                 ),
             GeneratorUnknown { name } =&gt;
-                <span class="macro">write!</span>(f, <span class="string">&quot;Failed to generate function. Generator is unknown: {}&quot;</span>, name),
+                <span class="macro">write!</span>(f, <span class="string">&quot;Failed to generate function. Generator is unknown: {name}&quot;</span>),
             ProcessorGenerationError::GeneratorError { description } =&gt;
                 <span class="macro">write!</span>(f, <span class="string">&quot;Failed to generate function. {description}&quot;</span>),
         }
@@ -384,12 +384,12 @@
         .stderr(Stdio::inherit())
         .output()
         .map_err(|err| ProcessorGenerationError::GeneratorError {
-            description: <span class="macro">format!</span>(<span class="string">&quot;Generator error process failed [{}]: {}&quot;</span>, generator_path_str, err),
+            description: <span class="macro">format!</span>(<span class="string">&quot;Generator error process failed [{generator_path_str}]: {err}&quot;</span>),
         })<span class="question-mark">?</span>;
 
     <span class="kw">let </span>result = String::from_utf8(output.stdout)
         .map_err(|err| ProcessorGenerationError::GeneratorError {
-            description: <span class="macro">format!</span>(<span class="string">&quot;Cannot read output of [{}] (not a valid UTF-8 string): {}&quot;</span>, generator_path_str, err),
+            description: <span class="macro">format!</span>(<span class="string">&quot;Cannot read output of [{generator_path_str}] (not a valid UTF-8 string): {err}&quot;</span>),
         })<span class="question-mark">?</span>;
 
     <span class="kw">if </span>!output.status.success() {
@@ -418,7 +418,7 @@
 <span class="kw">fn </span>interpret_child_output(generator_path_str: <span class="kw-2">&amp;</span>str, output: String) -&gt; <span class="prelude-ty">Result</span>&lt;String, ProcessorGenerationError&gt; {
     <span class="kw">if </span>output.is_empty() {
         <span class="kw">return </span><span class="prelude-val">Err</span>(ProcessorGenerationError::GeneratorError {
-            description: <span class="macro">format!</span>(<span class="string">&quot;[{}] Process output is empty.&quot;</span>, generator_path_str),
+            description: <span class="macro">format!</span>(<span class="string">&quot;[{generator_path_str}] Process output is empty.&quot;</span>),
         })
     }
 
@@ -431,7 +431,7 @@
         <span class="prelude-val">Ok</span>(string)
     } <span class="kw">else </span>{
         <span class="prelude-val">Err</span>(ProcessorGenerationError::GeneratorError {
-            description: <span class="macro">format!</span>(<span class="string">&quot;[{}] {}.&quot;</span>, generator_path_str, string),
+            description: <span class="macro">format!</span>(<span class="string">&quot;[{generator_path_str}] {string}.&quot;</span>),
         })
     }
 }

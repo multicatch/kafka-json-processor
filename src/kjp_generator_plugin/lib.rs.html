@@ -199,7 +199,7 @@
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
             InvalidGeneratorArguments { args, description } =&gt;
-                <span class="macro">write!</span>(f, <span class="string">&quot;{} \nProvided arguments:{:?}&quot;</span>, description, args),
+                <span class="macro">write!</span>(f, <span class="string">&quot;{description} \nProvided arguments:{args:?}&quot;</span>),
 
             GeneratorError::RequiredConfigNotFound { function_name, field_name, description } =&gt;
                 <span class="macro">write!</span>(f, <span class="string">&quot;Processor required config that was missing in template. Function: {}, missing field: {}. Description: {}&quot;</span>,
@@ -207,7 +207,7 @@
                 ),
 
             GeneratorError::OtherError { description } =&gt;
-                <span class="macro">write!</span>(f, <span class="string">&quot;{}&quot;</span>, description),
+                <span class="macro">write!</span>(f, <span class="string">&quot;{description}&quot;</span>),
         }
     }
 }
@@ -292,7 +292,7 @@
         .skip(<span class="number">1</span>)
         .filter(|s| !s.is_empty())
         .map(|s| <span class="kw">match </span>s.parse::&lt;i64&gt;() {
-            <span class="prelude-val">Ok</span>(num) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Index({})&quot;</span>, num),
+            <span class="prelude-val">Ok</span>(num) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Index({num})&quot;</span>),
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Key(\&quot;{}\&quot;.to_string())&quot;</span>, s.escape_for_json()),
         })
         .collect();

@@ -136,15 +136,15 @@
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
             ErrorKind::InvalidObjectTree { invalid_key, reason } =&gt;
-                <span class="macro">write!</span>(f, <span class="string">&quot;Object tree is incompatible with key [{:?}], reason: {}&quot;</span>, invalid_key, reason),
+                <span class="macro">write!</span>(f, <span class="string">&quot;Object tree is incompatible with key [{invalid_key:?}], reason: {reason}&quot;</span>),
             ErrorKind::EmptyKey =&gt;
                 <span class="macro">write!</span>(f, <span class="string">&quot;Illegal object tree key: Key is empty.&quot;</span>),
             ErrorKind::FieldNotFound { key } =&gt;
-                <span class="macro">write!</span>(f, <span class="string">&quot;No key in object: [{:?}]&quot;</span>, key),
+                <span class="macro">write!</span>(f, <span class="string">&quot;No key in object: [{key:?}]&quot;</span>),
             ErrorKind::OtherError { err } =&gt;
-                <span class="macro">write!</span>(f, <span class="string">&quot;Unexpected error while processing: {}&quot;</span>, err),
+                <span class="macro">write!</span>(f, <span class="string">&quot;Unexpected error while processing: {err}&quot;</span>),
             ErrorKind::ProcessorSkipped { reason } =&gt; 
-                <span class="macro">write!</span>(f, <span class="string">&quot;{}&quot;</span>, reason),
+                <span class="macro">write!</span>(f, <span class="string">&quot;{reason}&quot;</span>),
         }
     }
 }

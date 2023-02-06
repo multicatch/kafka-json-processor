@@ -401,7 +401,7 @@
             <span class="kw">if </span>node_discriminant != child_discriminant {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(ErrorKind::InvalidObjectTree {
                     invalid_key: <span class="macro">vec!</span>[],
-                    reason: <span class="macro">format!</span>(<span class="string">&quot;Child node has incompatible type, cannot merge {:?} into {:?}.&quot;</span>, child_discriminant, node_discriminant),
+                    reason: <span class="macro">format!</span>(<span class="string">&quot;Child node has incompatible type, cannot merge {child_discriminant:?} into {node_discriminant:?}.&quot;</span>),
                 }.into());
             }
         }
