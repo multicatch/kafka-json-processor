@@ -12,7 +12,7 @@ pub fn generate_cargo(template: &Template, core_path: Option<String>) -> String 
         )
         .replace(CORE_VERSION, &core_path
             .map(|path| format!("{{ path = \"{}\" }}", path))
-            .unwrap_or_else(|| "\"0.1.1\"".to_string())
+            .unwrap_or_else(|| "\"0.1.2\"".to_string())
         )
 }
 
@@ -275,7 +275,7 @@ edition = "2021"
 log = "0.4.17"
 env_logger = "0.9.0"
 serde_json = "1.0.83"
-kafka_json_processor_core = "0.1.1"
+kafka_json_processor_core = "0.1.2"
 lazy_static = "1.4.0"
 regex = "1.7.0"
 "##, actual);
