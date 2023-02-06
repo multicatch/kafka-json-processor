@@ -117,7 +117,7 @@ fn save_offset<P: AsRef<Path>>(base_path: P, offset_key: OffsetKey, offset: Offs
     debug!("Saving offset [Topic: {}] [Partition: {}] [Offset: {}] to {:?}", &offset_key.0, &offset_key.1, offset, &file_path);
 
     // save offset to file with name "$topic.$partition" (eg. sampletopic.1)
-    if let Err(e) = fs::write(&file_path, format!("{}", offset)) {
+    if let Err(e) = fs::write(&file_path, format!("{offset}")) {
         error!("Failed to write journal to file {file_path:?}. Topic: [{}], Partition: [{}], Offset: [{}]. Reason: {e}", offset_key.0, offset_key.1, offset);
     }
 }

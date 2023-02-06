@@ -45,7 +45,7 @@ fn find_samples_and_simulate<P: AsRef<Path>>(simulation_path: P, stream: &Stream
         };
 
         let file_name = file_path.file_name().unwrap().to_str().unwrap();
-        let msg_id = format!("simulation_{}_{}", source, file_name);
+        let msg_id = format!("simulation_{source}_{file_name}");
 
         info!("====== [{}#{}: {}] ======", source, i, file_name);
         run_single_simulation(msg_id, stream, input, expected);

@@ -40,7 +40,7 @@ impl Display for ProcessorGenerationError {
                        function_name, field_name, description.clone().unwrap_or_else(|| "N/A".to_string())
                 ),
             GeneratorUnknown { name } =>
-                write!(f, "Failed to generate function. Generator is unknown: {}", name),
+                write!(f, "Failed to generate function. Generator is unknown: {name}"),
             ProcessorGenerationError::GeneratorError { description } =>
                 write!(f, "Failed to generate function. {description}"),
         }
@@ -144,12 +144,12 @@ fn generate_source<P: AsRef<OsStr>>(generator_path: P, function_name: &str, conf
         .stderr(Stdio::inherit())
         .output()
         .map_err(|err| ProcessorGenerationError::GeneratorError {
-            description: format!("Generator error process failed [{}]: {}", generator_path_str, err),
+            description: format!("Generator error process failed [{generator_path_str}]: {err}"),
         })?;
 
     let result = String::from_utf8(output.stdout)
         .map_err(|err| ProcessorGenerationError::GeneratorError {
-            description: format!("Cannot read output of [{}] (not a valid UTF-8 string): {}", generator_path_str, err),
+            description: format!("Cannot read output of [{generator_path_str}] (not a valid UTF-8 string): {err}"),
         })?;
 
     if !output.status.success() {
@@ -178,7 +178,7 @@ fn generate_source<P: AsRef<OsStr>>(generator_path: P, function_name: &str, conf
 fn interpret_child_output(generator_path_str: &str, output: String) -> Result<String, ProcessorGenerationError> {
     if output.is_empty() {
         return Err(ProcessorGenerationError::GeneratorError {
-            description: format!("[{}] Process output is empty.", generator_path_str),
+            description: format!("[{generator_path_str}] Process output is empty."),
         })
     }
 
@@ -191,7 +191,7 @@ fn interpret_child_output(generator_path_str: &str, output: String) -> Result<St
         Ok(string)
     } else {
         Err(ProcessorGenerationError::GeneratorError {
-            description: format!("[{}] {}.", generator_path_str, string),
+            description: format!("[{generator_path_str}] {string}."),
         })
     }
 }

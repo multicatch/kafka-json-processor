@@ -39,7 +39,7 @@ impl Display for GeneratorError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             InvalidGeneratorArguments { args, description } =>
-                write!(f, "{} \nProvided arguments:{:?}", description, args),
+                write!(f, "{description} \nProvided arguments:{args:?}"),
 
             GeneratorError::RequiredConfigNotFound { function_name, field_name, description } =>
                 write!(f, "Processor required config that was missing in template. Function: {}, missing field: {}. Description: {}",
@@ -47,7 +47,7 @@ impl Display for GeneratorError {
                 ),
 
             GeneratorError::OtherError { description } =>
-                write!(f, "{}", description),
+                write!(f, "{description}"),
         }
     }
 }
@@ -132,7 +132,7 @@ pub fn json_path_to_object_key(jsonpath: &str) -> String {
         .skip(1)
         .filter(|s| !s.is_empty())
         .map(|s| match s.parse::<i64>() {
-            Ok(num) => format!("Index({})", num),
+            Ok(num) => format!("Index({num})"),
             Err(_) => format!("Key(\"{}\".to_string())", s.escape_for_json()),
         })
         .collect();

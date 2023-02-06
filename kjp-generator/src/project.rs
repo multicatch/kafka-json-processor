@@ -11,7 +11,7 @@ pub fn generate_cargo(template: &Template, core_path: Option<String>) -> String 
             .to_lowercase(),
         )
         .replace(CORE_VERSION, &core_path
-            .map(|path| format!("{{ path = \"{}\" }}", path))
+            .map(|path| format!("{{ path = \"{path}\" }}"))
             .unwrap_or_else(|| "\"0.1.2\"".to_string())
         )
 }

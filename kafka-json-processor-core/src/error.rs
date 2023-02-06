@@ -48,15 +48,15 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorKind::InvalidObjectTree { invalid_key, reason } =>
-                write!(f, "Object tree is incompatible with key [{:?}], reason: {}", invalid_key, reason),
+                write!(f, "Object tree is incompatible with key [{invalid_key:?}], reason: {reason}"),
             ErrorKind::EmptyKey =>
                 write!(f, "Illegal object tree key: Key is empty."),
             ErrorKind::FieldNotFound { key } =>
-                write!(f, "No key in object: [{:?}]", key),
+                write!(f, "No key in object: [{key:?}]"),
             ErrorKind::OtherError { err } =>
-                write!(f, "Unexpected error while processing: {}", err),
+                write!(f, "Unexpected error while processing: {err}"),
             ErrorKind::ProcessorSkipped { reason } => 
-                write!(f, "{}", reason),
+                write!(f, "{reason}"),
         }
     }
 }

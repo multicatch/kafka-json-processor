@@ -13,7 +13,7 @@ documentation = "https://multicatch.github.io/kafka-json-processor/kjp_generator
 
 [dependencies]
 log = "0.4.17"
-env_logger = "0.9.0"
+env_logger = "0.10.0"
 clap = { version = "4.0.25", features = ["derive"] }
 serde = { version = "1.0.147", features = ["derive"] }
 serde_yaml = "0.9.14"

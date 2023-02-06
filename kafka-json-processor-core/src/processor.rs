@@ -176,7 +176,7 @@ fn verify_type_compatibility(node: &Value, child: &Value) -> Result<(), Processi
             if node_discriminant != child_discriminant {
                 return Err(ErrorKind::InvalidObjectTree {
                     invalid_key: vec![],
-                    reason: format!("Child node has incompatible type, cannot merge {:?} into {:?}.", child_discriminant, node_discriminant),
+                    reason: format!("Child node has incompatible type, cannot merge {child_discriminant:?} into {node_discriminant:?}."),
                 }.into());
             }
         }
